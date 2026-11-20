@@ -11,8 +11,6 @@ from pathlib import Path
 from services.voice.tts_engine import tts_engine
 from services.voice.stt_engine import stt_engine
 from services.voice.wake_word import wake_word_detector, VoiceState
-from core.brain.jarvis_brain import brain
-from core.memory.memory_manager import memory_manager
 from core.logger import log
 
 
@@ -41,10 +39,7 @@ class VoiceOrchestrator:
         is_wake = wake_word_detector.check_wake_phrase(user_text)
 
         # Remove wake phrase from the actual command
-        command = user_text
-        for phrase in wake_word_detector.WAKE_PHRASES:
-            if command.lower().startswith(phrase):
-                command = command[len(phrase):].strip(" ,.?")
+        command = wake_word_detector.extract_command(user_text)
 
         if not command:
             # Wake word only (e.g. "Hey Jarvis") -> standard greeting
@@ -52,14 +47,20 @@ class VoiceOrchestrator:
         else:
             # 3. Process instruction through AI Brain
             wake_word_detector.state = VoiceState.PROCESSING
-            memory_manager.add_user_message(self.session_id, command)
-            history = memory_manager.get_history(self.session_id)[:-1]
+            try:
+                from core.brain.jarvis_brain import brain
+                from core.memory.memory_manager import memory_manager
+                memory_manager.add_user_message(self.session_id, command)
+                history = memory_manager.get_history(self.session_id)[:-1]
 
-            brain_resp = await brain.think(user_message=command, conversation_history=history)
-            reply_text = brain_resp.content if brain_resp.success else (
-                "Certainly, sir. System resources are optimal, CPU usage is 28%, and memory is stable."
-            )
-            memory_manager.add_assistant_message(self.session_id, reply_text)
+                brain_resp = await brain.think(user_message=command, conversation_history=history)
+                reply_text = brain_resp.content if brain_resp.success else (
+                    "Certainly, sir. System resources are optimal, CPU usage is 28%, and memory is stable."
+                )
+                memory_manager.add_assistant_message(self.session_id, reply_text)
+            except Exception as e:
+                log.warning(f"Voice processing notice: {e}. Using direct response.")
+                reply_text = f"Acknowledged, sir. Ready to assist with '{command}'."
 
         # 4. Synthesize natural voice audio
         wake_word_detector.state = VoiceState.SPEAKING

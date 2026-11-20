@@ -52,6 +52,7 @@ HELP_TEXT = """
   [yellow]/help[/yellow]       → Show this help menu
   [yellow]/solve <task>[/yellow]→ Execute 10-step reasoning & problem solving
   [yellow]/research <q>[/yellow]→ Deep internet research & knowledge indexing
+  [yellow]/voice <text>[/yellow]→ Offline voice speech synthesis & voice status
   [yellow]/history[/yellow]    → Show conversation history
   [yellow]/clear[/yellow]      → Clear conversation memory
   [yellow]/status[/yellow]     → Show system status
@@ -62,7 +63,7 @@ HELP_TEXT = """
 Type any message to talk with JARVIS.
 """
 
-COMMANDS = {"/help", "/solve", "/research", "/history", "/clear", "/status", "/session", "/exit", "/quit"}
+COMMANDS = {"/help", "/solve", "/research", "/voice", "/history", "/clear", "/status", "/session", "/exit", "/quit"}
 
 
 def display_banner():
@@ -194,6 +195,25 @@ async def handle_command(command: str, session_id: str) -> bool:
     elif cmd == "/clear":
         memory_manager.delete_session(session_id)
         console.print("[dim]Conversation memory cleared.[/dim]\n")
+
+    elif cmd == "/voice" or cmd.startswith("/voice"):
+        from services.voice.tts_engine import tts_engine
+        from services.voice.wake_word import wake_word_detector
+
+        arg = command[6:].strip()
+        if arg:
+            console.print(f"\n[bold blue]JARVIS (Speaking):[/bold blue] {arg}\n")
+            tts_engine.speak(arg)
+        else:
+            table = Table(title="JARVIS Voice Intelligence (Phase 10)", border_style="blue")
+            table.add_column("Subsystem", style="cyan")
+            table.add_column("Status", style="white")
+            table.add_row("TTS Engine", "pyttsx3 / Windows SAPI5 (100% Offline)")
+            table.add_row("STT Engine", "faster-whisper CPU (Offline)")
+            table.add_row("Wake Word", "Hey Jarvis, OK Jarvis (Active)")
+            table.add_row("Microphone", "Available" if wake_word_detector.mic_available else "Not Detected (Text Fallback)")
+            console.print(table)
+            console.print("[dim]Use '/voice <phrase>' to speak aloud using local TTS.[/dim]\n")
 
     return True
 

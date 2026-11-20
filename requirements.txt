@@ -56,3 +56,9 @@ loguru==0.7.2
 pytest==8.3.3
 pytest-asyncio==0.24.0
 httpx                          # Already listed above (for TestClient)
+
+# --- Phase 10: Local Voice Intelligence ---
+pyttsx3>=2.90                  # Local offline TTS via Windows SAPI5
+faster-whisper>=1.0.0          # Local offline STT via CTranslate2 CPU Whisper
+sounddevice>=0.4.6             # Real-time microphone audio capture
+numpy>=1.24.0                  # Audio buffer and array operations
