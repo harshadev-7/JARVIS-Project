@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS AI — Holographic Command Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00d2ff;
+            --primary-glow: rgba(0, 210, 255, 0.4);
+            --secondary: #0066ff;
+            --accent: #ff0055;
+            --bg-dark: #050b14;
+            --panel-bg: rgba(6, 18, 38, 0.75);
+            --border: rgba(0, 210, 255, 0.3);
+            --text-main: #e0f4ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 50, 100, 0.3) 0%, transparent 70%),
+                linear-gradient(rgba(0, 210, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 210, 255, 0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px, 30px 30px;
+        }
+
+        /* Top Header HUD */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(5, 12, 24, 0.85);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary);
+        }
+
+        .system-status-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            letter-spacing: 2px;
+            padding: 6px 16px;
+            border: 1px solid #00ffaa;
+            border-radius: 20px;
+            color: #00ffaa;
+            box-shadow: 0 0 10px rgba(0, 255, 170, 0.2);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ffaa;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 8px #00ffaa; }
+            100% { transform: scale(0.9); opacity: 0.7; }
+        }
+
+        /* Main Workspace Grid */
+        .workspace {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 320px 1fr 340px;
+            gap: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(8px);
+            position: relative;
+        }
+
+        .panel-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 15px;
+            letter-spacing: 2px;
+            color: var(--primary);
+            margin-bottom: 15px;
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Center Arc Reactor / AI Brain */
+        .center-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .arc-reactor {
+            width: 260px;
+            height: 260px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .arc-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid transparent;
+        }
+
+        .ring-1 {
+            width: 260px;
+            height: 260px;
+            border-top: 3px solid var(--primary);
+            border-bottom: 3px solid var(--primary);
+            animation: rotate-cw 8s linear infinite;
+        }
+
+        .ring-2 {
+            width: 210px;
+            height: 210px;
+            border-left: 2px dashed var(--primary);
+            border-right: 2px dashed var(--primary);
+            animation: rotate-ccw 6s linear infinite;
+        }
+
+        .ring-core {
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle, var(--primary) 0%, rgba(0, 102, 255, 0.4) 60%, transparent 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 35px var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 2px;
+        }
+
+        @keyframes rotate-cw { 100% { transform: rotate(360deg); } }
+        @keyframes rotate-ccw { 100% { transform: rotate(-360deg); } }
+
+        /* Terminal Console */
+        .terminal-box {
+            width: 100%;
+            flex: 1;
+            background: rgba(2, 8, 18, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .terminal-logs {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-jarvis { color: var(--primary); }
+        .log-user { color: #00ffaa; }
+
+        .terminal-input-bar {
+            display: flex;
+            border-top: 1px solid var(--border);
+            background: rgba(5, 12, 24, 0.95);
+        }
+
+        .terminal-input-bar input {
+            flex: 1;
+            padding: 12px 18px;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .btn-send {
+            padding: 0 25px;
+            background: var(--primary);
+            color: #000;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-send:hover { background: #fff; box-shadow: 0 0 15px #fff; }
+
+        /* Metric Gauges */
+        .metric-row {
+            margin-bottom: 18px;
+        }
+
+        .metric-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+
+        .gauge-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            box-shadow: 0 0 8px var(--primary);
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+
+        /* Agent Roster List */
+        .agent-list {
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .agent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(0, 210, 255, 0.1);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .agent-item:hover {
+            background: rgba(0, 210, 255, 0.2);
+            padding-left: 14px;
+        }
+
+        .agent-item.selected {
+            background: rgba(0, 210, 255, 0.12);
+            border-left: 2px solid var(--primary);
+            padding-left: 14px;
+        }
+
+        .agent-item.ready .agent-active,
+        .agent-item.active .agent-active,
+        .agent-item.standby .agent-active,
+        .agent-item.shielded .agent-active {
+            color: #00ffaa;
+        }
+
+        .agent-item.ready { border-color: rgba(0, 255, 170, 0.18); }
+        .agent-item.active { background: rgba(0, 210, 255, 0.08); }
+        .agent-item.standby { opacity: 0.84; }
+        .agent-item.shielded { border-left: 2px solid rgba(255, 0, 85, 0.6); }
+
+        .agent-active {
+            color: #00ffaa;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .agent-item.active .agent-active::before,
+        .agent-item.running .agent-active::before,
+        .agent-item.ready .agent-active::before,
+        .agent-item.shielded .agent-active::before,
+        .agent-item.standby .agent-active::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+            background: #00ffaa;
+            box-shadow: 0 0 10px rgba(0, 255, 170, 0.8);
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        .mission-timeline {
+            margin-top: 12px;
+            background: rgba(2, 8, 18, 0.7);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 180px;
+            overflow-y: auto;
+            box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.05);
+        }
+
+        .mission-summary {
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(0, 210, 255, 0.06);
+            border: 1px solid rgba(0, 210, 255, 0.16);
+        }
+
+        .mission-summary-title {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            color: #8fe9ff;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .mission-summary-text {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        .agent-progress-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(0, 210, 255, 0.08);
+        }
+
+        .mission-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin: 10px 0 12px;
+        }
+
+        .stat-box {
+            padding: 8px 6px;
+            border-radius: 6px;
+            text-align: center;
+            background: rgba(0, 210, 255, 0.04);
+            border: 1px solid rgba(0, 210, 255, 0.12);
+        }
+
+        .stat-box strong {
+            display: block;
+            font-size: 16px;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--primary);
+        }
+
+        .stat-box span {
+            display: block;
+            font-size: 9px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: #8fe9ff;
+        }
+
+        .mission-progress {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 999px;
+            overflow: hidden;
+            margin: 10px 0 12px;
+            border: 1px solid rgba(0, 210, 255, 0.15);
+        }
+
+        .mission-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #00ffaa, var(--primary));
+            box-shadow: 0 0 10px rgba(0, 255, 170, 0.5);
+            transition: width 0.35s ease;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            color: var(--primary);
+            background: rgba(0, 210, 255, 0.08);
+        }
+
+        .status-pill.failed { color: #ff7a7a; border-color: rgba(255, 122, 122, 0.3); background: rgba(255, 122, 122, 0.08); }
+        .status-pill.completed { color: #00ffaa; border-color: rgba(0, 255, 170, 0.3); background: rgba(0, 255, 170, 0.08); }
+        .status-pill.partial { color: #ffd166; border-color: rgba(255, 209, 102, 0.3); background: rgba(255, 209, 102, 0.08); }
+        .status-pill.running { color: #7ec9ff; border-color: rgba(126, 201, 255, 0.3); background: rgba(126, 201, 255, 0.08); }
+
+        .timeline-item {
+            display: flex;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0, 210, 255, 0.08);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            left: 3px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: rgba(0, 210, 255, 0.18);
+        }
+
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+
+        .timeline-bullet {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            margin-top: 6px;
+            margin-left: 2px;
+            box-shadow: 0 0 10px var(--primary);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .timeline-meta {
+            color: #8fe9ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 10px;
+        }
+
+        /* Controls Footer */
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 10px;
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid var(--border);
+            color: var(--primary);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            background: var(--primary);
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-title">JARVIS AI // HUD</div>
+        <div style="font-size: 14px; letter-spacing: 2px; color: var(--primary);">
+            AUTONOMY LEVEL: <span id="autonomy-disp" style="font-weight: 700; color: #fff;">LEVEL 2 [RESEARCHER]</span>
+        </div>
+        <div class="system-status-pill">
+            <div class="pulse-dot"></div>
+            <span>ONLINE // SYSTEMS NOMINAL</span>
+        </div>
+    </header>
+
+    <div class="workspace">
+        
+        <!-- Left Panel: Hardware Telemetry -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>SYSTEM TELEMETRY</span>
+                <span>OS: WIN64</span>
+            </div>
+
+            <div class="metric-row">
+                <div class="metric-label">
+                    <span>CPU LOAD</span>
+                    <span id="cpu-val">28%</span>
+                </div>
+                <div class="gauge-bar"><div class="gauge-fill" id="cpu-fill" style="width: 28%;"></div></div>
+            </div>
+
+            <div class="metric-row">
+                <div class="metric-label">
+                    <span>RAM ALLOCATION</span>
+                    <span id="ram-val">42%</span>
+                </div>
+                <div class="gauge-bar"><div class="gauge-fill" id="ram-fill" style="width: 42%;"></div></div>
+            </div>
+
+            <div class="metric-row">
+                <div class="metric-label">
+                    <span>PRIMARY DISK</span>
+                    <span id="disk-val">68%</span>
+                </div>
+                <div class="gauge-bar"><div class="gauge-fill" id="disk-fill" style="width: 68%;"></div></div>
+            </div>
+
+            <div class="metric-row">
+                <div class="metric-label">
+                    <span>BATTERY / POWER</span>
+                    <span id="bat-val">100% [PLUGGED]</span>
+                </div>
+                <div class="gauge-bar"><div class="gauge-fill" id="bat-fill" style="width: 100%; background: #00ffaa;"></div></div>
+            </div>
+
+            <div class="panel-header" style="margin-top: 25px;">
+                <span>ACTIVE HARDWARE NODES</span>
+            </div>
+            <div id="devices-list" style="font-size: 13px; line-height: 1.8;">
+                <div>💻 Host Workstation (Online)</div>
+                <div>📱 Mobile Endpoint (Ready)</div>
+            </div>
+
+            <div style="margin-top: auto;">
+                <div class="controls-row">
+                    <button class="btn-action" onclick="fetchMetrics()">REFRESH</button>
+                    <button class="btn-action" onclick="toggleVoice()">VOICE ON</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel: AI Arc Reactor & Terminal -->
+        <div class="center-stage">
+            <div class="arc-reactor">
+                <div class="arc-ring ring-1"></div>
+                <div class="arc-ring ring-2"></div>
+                <div class="ring-core">JARVIS</div>
+            </div>
+
+            <div class="terminal-box">
+                <div class="terminal-logs" id="terminal-logs">
+                    <div class="log-jarvis">JARVIS: Good day, sir. All core modules initialized. How may I assist you?</div>
+                </div>
+                <div class="terminal-input-bar">
+                    <input type="text" id="user-input" placeholder="Enter voice transcript or terminal command (e.g. /solve, /research)..." onkeypress="handleKey(event)">
+                    <button class="btn-send" onclick="sendMessage()">EXECUTE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Multi-Agent Hub -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>15 ACTIVE AGENTS</span>
+                <span>STATUS</span>
+            </div>
+
+            <div class="agent-list" id="agent-list"></div>
+
+            <div class="panel-header" style="margin-top: 25px;">
+                <span>MISSION LEDGER</span>
+            </div>
+            <div class="agent-list" id="mission-list" style="max-height: 160px;"></div>
+            <div class="mission-timeline" id="mission-timeline">
+                <div style="font-size:12px; color:#7ec9ff;">Select a mission to view the execution timeline.</div>
+            </div>
+
+            <div class="panel-header" style="margin-top: 25px;">
+                <span>AUTONOMY CONTROLS</span>
+            </div>
+            <div class="controls-row">
+                <button class="btn-action" onclick="setAutonomy(1)">LVL 1</button>
+                <button class="btn-action" onclick="setAutonomy(2)">LVL 2</button>
+                <button class="btn-action" onclick="setAutonomy(3)">LVL 3</button>
+                <button class="btn-action" onclick="setAutonomy(4)">LVL 4</button>
+                <button class="btn-action" onclick="setAutonomy(5)">LVL 5</button>
+            </div>
+            <div class="controls-row" style="margin-top: 12px;">
+                <button class="btn-action" onclick="triggerDemoMission()">DEMO MISSION</button>
+                <button class="btn-action" onclick="toggleSecurity()">SECURITY</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let voiceEnabled = false;
+        let ws = null;
+        let recognition = null;
+        let selectedMissionId = null;
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                ws = new WebSocket(`${protocol}//${window.location.host}/ws/stream`);
+
+                ws.onopen = () => {
+                    console.log("JARVIS WebSocket connected.");
+                    document.querySelector('.system-status-pill span').innerText = "ONLINE // WEBSOCKET STREAMING";
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const packet = JSON.parse(event.data);
+                        if (packet.type === 'telemetry') {
+                            updateTelemetryDisplay(packet.data);
+                        } else if (packet.type === 'chat_reply') {
+                            appendLog('JARVIS: ' + packet.reply.replace(/\n/g, '<br>'), 'log-jarvis');
+                            if (voiceEnabled) speakText(packet.reply);
+                        } else if (packet.type === 'mission_result') {
+                            const mission = packet.mission || {};
+                            const summary = mission.synthesized_summary || 'Mission completed.';
+                            appendLog('JARVIS: Mission ' + mission.mission_id + ' complete.<br>' + summary.replace(/\n/g, '<br>'), 'log-jarvis');
+                            if (voiceEnabled) speakText('Mission complete.');
+                            fetchMissionLedger();
+                        }
+                    } catch (e) {
+                        console.error("WS Parse error", e);
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log("JARVIS WebSocket disconnected. Reconnecting in 3s...");
+                    document.querySelector('.system-status-pill span').innerText = "STANDBY // POLLING FALLBACK";
+                    setTimeout(initWebSocket, 3000);
+                };
+            } catch (err) {
+                console.log("WebSocket unavailable, falling back to HTTP", err);
+            }
+        }
+
+        function updateTelemetryDisplay(data) {
+            if (data.cpu_percent !== undefined) {
+                document.getElementById('cpu-val').innerText = data.cpu_percent + '%';
+                document.getElementById('cpu-fill').style.width = data.cpu_percent + '%';
+            }
+            if (data.ram_percent !== undefined) {
+                document.getElementById('ram-val').innerText = data.ram_percent + '% (' + (data.ram_used_gb || '') + 'GB)';
+                document.getElementById('ram-fill').style.width = data.ram_percent + '%';
+            }
+            if (data.disk_percent !== undefined) {
+                document.getElementById('disk-val').innerText = data.disk_percent + '%';
+                document.getElementById('disk-fill').style.width = data.disk_percent + '%';
+            }
+        }
+
+        async function fetchMetrics() {
+            try {
+                const res = await fetch('/automation/system/metrics');
+                if (res.ok) {
+                    const data = await res.json();
+                    updateTelemetryDisplay(data);
+                }
+            } catch (e) {
+                console.log("Telemetry poll", e);
+            }
+        }
+
+        async function fetchAgentStatus() {
+            try {
+                const res = await fetch('/agents/status');
+                if (!res.ok) return;
+                const data = await res.json();
+                const container = document.getElementById('agent-list');
+                container.innerHTML = '';
+
+                data.forEach((agent) => {
+                    const row = document.createElement('div');
+                    const state = (agent.status || 'ready').toLowerCase();
+                    row.className = `agent-item ${state}`;
+                    row.onclick = () => invokeAgent(agent.id, agent.name);
+                    const statusText = (agent.status || 'ready').toUpperCase();
+                    row.innerHTML = `
+                        <span>${agent.name}</span>
+                        <span class="agent-active">● ${statusText}</span>
+                    `;
+                    container.appendChild(row);
+                });
+            } catch (e) {
+                console.log('Agent roster refresh failed', e);
+            }
+        }
+
+        function renderMissionTimeline(mission) {
+            const timelineEl = document.getElementById('mission-timeline');
+            if (!mission) {
+                timelineEl.innerHTML = '<div style="font-size:12px; color:#7ec9ff;">No mission events captured yet.</div>';
+                return;
+            }
+
+            const status = (mission.status || (mission.all_succeeded ? 'completed' : 'partial')).toLowerCase();
+            const agentStatusList = Array.isArray(mission.agent_status) ? mission.agent_status : [];
+            const totalAgents = agentStatusList.length || 1;
+            const completedCount = agentStatusList.filter((agent) => String(agent.status || '').toLowerCase() === 'completed').length;
+            const runningCount = agentStatusList.filter((agent) => String(agent.status || '').toLowerCase() === 'running').length;
+            const failedCount = agentStatusList.filter((agent) => String(agent.status || '').toLowerCase() === 'failed').length;
+            const progressPct = Math.min(100, Math.round((completedCount / totalAgents) * 100));
+
+            const summaryHtml = `
+                <div class="mission-summary">
+                    <div class="mission-summary-title">Mission Summary</div>
+                    <div class="mission-summary-text"><strong>${mission.mission_id}</strong> // ${mission.objective || 'Mission objective pending.'}</div>
+                    <div class="mission-progress">
+                        <div class="mission-progress-fill" style="width: ${progressPct}%"></div>
+                    </div>
+                    <div class="mission-stat-grid">
+                        <div class="stat-box"><strong>${completedCount}</strong><span>Done</span></div>
+                        <div class="stat-box"><strong>${runningCount}</strong><span>Running</span></div>
+                        <div class="stat-box"><strong>${failedCount}</strong><span>Failed</span></div>
+                        <div class="stat-box"><strong>${progressPct}%</strong><span>Progress</span></div>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <span class="status-pill ${status}">${status}</span>
+                    </div>
+                </div>
+            `;
+
+            const agentRows = agentStatusList.length
+                ? agentStatusList.map((agent) => {
+                    const agentStatus = String(agent.status || 'queued').toLowerCase();
+                    return `
+                        <div class="agent-progress-row">
+                            <div>
+                                <div style="font-weight:700; margin-bottom:4px;">${agent.agent || 'agent'}</div>
+                                <div style="font-size:11px; color:#8fe9ff;">${agent.summary || 'Awaiting execution.'}</div>
+                            </div>
+                            <span class="status-pill ${agentStatus}">${agentStatus}</span>
+                        </div>
+                    `;
+                }).join('')
+                : '<div style="font-size:12px; color:#7ec9ff;">Agent execution state not yet published.</div>';
+
+            const timeline = Array.isArray(mission.timeline) && mission.timeline.length
+                ? [...mission.timeline].reverse().map((event) => {
+                    const timeStamp = event.timestamp ? new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'NOW';
+                    return `
+                        <div class="timeline-item">
+                            <div class="timeline-bullet"></div>
+                            <div>
+                                <div class="timeline-meta">${timeStamp} // ${(event.phase || 'phase').toUpperCase()} // ${(event.agent || 'system').toUpperCase()}</div>
+                                <div>${event.summary || 'Mission event'}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')
+                : '<div style="font-size:12px; color:#7ec9ff;">Mission timeline is still empty.</div>';
+
+            timelineEl.innerHTML = summaryHtml + agentRows + '<div style="margin-top:12px; font-size:10px; letter-spacing:1.5px; color:#8fe9ff; text-transform:uppercase;">Execution Trace</div>' + timeline;
+        }
+
+        async function fetchMissionLedger() {
+            try {
+                const res = await fetch('/agents/missions');
+                if (!res.ok) return;
+                const data = await res.json();
+                const container = document.getElementById('mission-list');
+                container.innerHTML = '';
+
+                if (!data.length) {
+                    container.innerHTML = '<div style="font-size:12px; color:#7ec9ff;">No mission records yet.</div>';
+                    renderMissionTimeline(null);
+                    return;
+                }
+
+                data.slice(0, 5).forEach((mission) => {
+                    const status = (mission.status || (mission.all_succeeded ? 'completed' : 'partial')).toUpperCase();
+                    const timelineSummary = Array.isArray(mission.timeline) && mission.timeline.length
+                        ? mission.timeline[mission.timeline.length - 1].summary
+                        : mission.objective;
+                    const row = document.createElement('div');
+                    const rowState = (mission.status || 'running').toLowerCase();
+                    row.className = `agent-item ${rowState}` + (selectedMissionId === mission.mission_id ? ' selected' : '');
+                    row.innerHTML = `
+                        <span>${mission.mission_id}</span>
+                        <span class="agent-active">● ${status}</span>
+                    `;
+                    row.title = `${mission.objective} // ${timelineSummary}`;
+                    row.onclick = () => {
+                        selectedMissionId = mission.mission_id;
+                        renderMissionTimeline(mission);
+                        Array.from(container.children).forEach((child) => child.classList.remove('selected'));
+                        row.classList.add('selected');
+                    };
+                    container.appendChild(row);
+                });
+
+                if (selectedMissionId) {
+                    const chosenMission = data.find((mission) => mission.mission_id === selectedMissionId) || data[0];
+                    renderMissionTimeline(chosenMission);
+                } else {
+                    renderMissionTimeline(data[0]);
+                    selectedMissionId = data[0].mission_id;
+                }
+            } catch (e) {
+                console.log('Mission ledger refresh failed', e);
+            }
+        }
+
+        async function speakText(text) {
+            try {
+                // Strip markdown formatting for speech
+                const clean = text.replace(/[*#_`]/g, '').slice(0, 200);
+                const res = await fetch('/voice/synthesize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: clean, voice: 'en-GB-RyanNeural' })
+                });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const audio = new Audio(URL.createObjectURL(blob));
+                    audio.play();
+                }
+            } catch (e) {
+                console.log("Audio synthesis notice:", e);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendLog('User: ' + text, 'log-user');
+            input.value = '';
+
+            try {
+                if (text.startsWith('/solve')) {
+                    const prob = text.replace('/solve', '').trim();
+                    const res = await fetch('/reasoning/solve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ problem: prob })
+                    });
+                    const data = await res.json();
+                    const reply = data.step_10_final_report;
+                    appendLog('JARVIS: ' + reply.replace(/\n/g, '<br>'), 'log-jarvis');
+                    if (voiceEnabled) speakText(reply);
+                } else if (text.startsWith('/research')) {
+                    const top = text.replace('/research', '').trim();
+                    const res = await fetch('/research/topic', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ topic: top })
+                    });
+                    const data = await res.json();
+                    appendLog('JARVIS: ' + data.summary, 'log-jarvis');
+                    if (voiceEnabled) speakText(data.summary);
+                } else if (text.startsWith('/mission')) {
+                    const objective = text.replace('/mission', '').trim();
+                    const res = await fetch('/agents/orchestrate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ objective: objective || 'Assess mission readiness and system health', agents: ['task_planning', 'cybersecurity'] })
+                    });
+                    const data = await res.json();
+                    appendLog('JARVIS: Mission ' + data.mission_id + ' dispatched.<br>' + (data.synthesized_summary || '').replace(/\n/g, '<br>'), 'log-jarvis');
+                    if (voiceEnabled) speakText('Mission dispatched.');
+                    fetchMissionLedger();
+                } else if (text.startsWith('/launch')) {
+                    const appName = text.replace('/launch', '').trim();
+                    const res = await fetch('/automation/app/launch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ app: appName, autonomy_level: window.currentAutonomyLevel || 2 })
+                    });
+                    const data = await res.json();
+                    const reply = data.success ? `Application launch accepted: ${data.message}` : `Launch blocked: ${data.message}`;
+                    appendLog('JARVIS: ' + reply, 'log-jarvis');
+                    if (voiceEnabled) speakText(reply);
+                } else if (text.startsWith('/exec') || text.startsWith('/execute')) {
+                    const command = text.replace(/^\/exec(ute)?/i, '').trim();
+                    const res = await fetch('/automation/terminal/execute', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ command, autonomy_level: window.currentAutonomyLevel || 2, timeout_sec: 20.0 })
+                    });
+                    const data = await res.json();
+                    const reply = data.blocked ? `Command blocked: ${data.stderr || data.message || 'permission denied'}` : `Command exited ${data.exit_code}. ${data.stdout || data.stderr || ''}`;
+                    appendLog('JARVIS: ' + reply.replace(/\n/g, '<br>'), 'log-jarvis');
+                    if (voiceEnabled) speakText(reply);
+                } else {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'chat', message: text }));
+                    } else {
+                        const res = await fetch('/chat/message', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: text })
+                        });
+                        const data = await res.json();
+                        appendLog('JARVIS: ' + data.reply.replace(/\n/g, '<br>'), 'log-jarvis');
+                        if (voiceEnabled) speakText(data.reply);
+                    }
+                }
+            } catch (err) {
+                appendLog('JARVIS ERROR: ' + err.message, 'log-jarvis');
+            }
+        }
+
+        async function invokeAgent(agentKey, agentName) {
+            appendLog(`Deploying <strong>${agentName}</strong>...`, 'log-user');
+            try {
+                const res = await fetch('/agents/orchestrate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        objective: `Operational status inspection via ${agentName}`,
+                        agents: [agentKey]
+                    })
+                });
+                const data = await res.json();
+                appendLog('JARVIS: ' + data.synthesized_summary.replace(/\n/g, '<br>'), 'log-jarvis');
+                if (voiceEnabled) speakText(`${agentName} verified.`);
+            } catch (err) {
+                appendLog('JARVIS ERROR: ' + err.message, 'log-jarvis');
+            }
+        }
+
+        function appendLog(html, cls) {
+            const logs = document.getElementById('terminal-logs');
+            const div = document.createElement('div');
+            div.className = cls;
+            div.style.marginBottom = '10px';
+            div.innerHTML = html;
+            logs.appendChild(div);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function handleKey(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        async function setAutonomy(lvl) {
+            const names = ["", "Advisor", "Researcher", "Planner", "Executor", "Autonomous"];
+            try {
+                const res = await fetch('/system/autonomy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ level: lvl })
+                });
+                const data = await res.json();
+                const level = Number(data.autonomy_level || lvl);
+                const label = (data.label || names[level] || 'Researcher').toUpperCase();
+                document.getElementById('autonomy-disp').innerText = `LEVEL ${level} [${label}]`;
+                appendLog(`JARVIS: Autonomy level adjusted to Level ${level} (${names[level]}).`, 'log-jarvis');
+                if (voiceEnabled) speakText(`Autonomy adjusted to level ${level}.`);
+            } catch (err) {
+                document.getElementById('autonomy-disp').innerText = `LEVEL ${lvl} [${names[lvl].toUpperCase()}]`;
+                appendLog('JARVIS: Autonomy control failed to sync with backend.', 'log-jarvis');
+            }
+        }
+
+        async function triggerDemoMission() {
+            const objective = 'Run a local readiness audit for the command interface';
+            try {
+                const res = await fetch('/agents/missions/demo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        objective,
+                        agents: ['task_planning', 'cybersecurity', 'problem_solving']
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Demo mission failed');
+                }
+                appendLog(`JARVIS: Demo mission ${data.mission_id} dispatched.<br>${(data.synthesized_summary || '').replace(/\n/g, '<br>')}`, 'log-jarvis');
+                if (voiceEnabled) speakText('Demo mission launched.');
+                selectedMissionId = data.mission_id;
+                await fetchMissionLedger();
+            } catch (err) {
+                appendLog('JARVIS ERROR: Demo mission could not be dispatched. ' + err.message, 'log-jarvis');
+            }
+        }
+
+        async function toggleSecurity() {
+            try {
+                const statusRes = await fetch('/security/status');
+                const status = await statusRes.json();
+                const isActive = Boolean(status.emergency_shutdown_active);
+                const endpoint = isActive ? '/security/disarm?admin_key=jarvis-admin-restore' : '/security/emergency-shutdown';
+                const options = isActive ? { method: 'POST' } : {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ authorized_by: 'hud', reason: 'Operator engaged security controls from HUD.' })
+                };
+                const res = await fetch(endpoint, options);
+                const payload = await res.json();
+                const stateText = isActive ? 'disarmed' : 'engaged';
+                appendLog(`JARVIS: Security state ${stateText}. ${payload.message || ''}`, 'log-jarvis');
+                if (voiceEnabled) speakText(`Security state ${stateText}.`);
+            } catch (err) {
+                appendLog('JARVIS ERROR: Security control could not reach the backend.', 'log-jarvis');
+            }
+        }
+
+        function getActionButtonByHandler(handlerName) {
+            return Array.from(document.querySelectorAll('.btn-action')).find((btn) => {
+                const onclick = btn.getAttribute('onclick') || '';
+                return onclick.includes(handlerName);
+            });
+        }
+
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            const btn = getActionButtonByHandler('toggleVoice');
+            if (voiceEnabled) {
+                btn.innerText = "VOICE ACTIVE";
+                btn.style.background = "#00ffaa";
+                btn.style.color = "#000";
+                appendLog('JARVIS: Neural Speech Output and Microphone Listener enabled.', 'log-jarvis');
+                speakText("Voice interface online, sir. Standing by.");
+
+                // Start Web Speech Recognition if supported
+                const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SpeechRec) {
+                    recognition = new SpeechRec();
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+                    recognition.onresult = (e) => {
+                        const transcript = e.results[0][0].transcript;
+                        document.getElementById('user-input').value = transcript;
+                        sendMessage();
+                    };
+                    recognition.onend = () => {
+                        if (voiceEnabled) recognition.start();
+                    };
+                    try { recognition.start(); } catch(err){}
+                }
+            } else {
+                btn.innerText = "VOICE ON";
+                btn.style.background = "";
+                btn.style.color = "";
+                if (recognition) { try { recognition.stop(); } catch(err){} }
+                appendLog('JARVIS: Voice output disabled.', 'log-jarvis');
+            }
+        }
+
+        async function syncSystemState() {
+            try {
+                const autonomyRes = await fetch('/system/autonomy');
+                const autonomy = await autonomyRes.json();
+                window.currentAutonomyLevel = Number(autonomy.autonomy_level || 2);
+                const label = (autonomy.label || 'researcher').toUpperCase();
+                document.getElementById('autonomy-disp').innerText = `LEVEL ${window.currentAutonomyLevel} [${label}]`;
+
+                const securityRes = await fetch('/security/status');
+                const security = await securityRes.json();
+                const securityBtn = getActionButtonByHandler('toggleSecurity');
+                if (securityBtn) {
+                    securityBtn.innerText = security.emergency_shutdown_active ? 'DISARM' : 'SECURITY';
+                    securityBtn.style.background = security.emergency_shutdown_active ? '#ff0055' : '';
+                    securityBtn.style.color = security.emergency_shutdown_active ? '#fff' : '';
+                }
+            } catch (e) {
+                console.log('HUD state sync failed', e);
+            }
+        }
+
+        // Initialize connections
+        initWebSocket();
+        setInterval(fetchMetrics, 4000);
+        setInterval(fetchAgentStatus, 8000);
+        setInterval(fetchMissionLedger, 12000);
+        setInterval(syncSystemState, 7000);
+        fetchMetrics();
+        fetchAgentStatus();
+        fetchMissionLedger();
+        syncSystemState();
+    </script>
+</body>
+</html>

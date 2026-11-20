@@ -1,0 +1,58 @@
+# ============================================================
+# JARVIS AI - Phase 1 Requirements
+# Core AI Brain & Conversational Interface
+# ============================================================
+
+# --- Web Framework ---
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# --- AI & LLM ---
+openai==1.55.0                 # GPT-4o / GPT-4o-mini
+google-generativeai==0.8.3     # Gemini (free alternative)
+anthropic==0.39.0              # Claude (optional alternative)
+
+# --- LangChain (agent framework foundation) ---
+langchain==0.3.7
+langchain-openai==0.2.9
+langchain-google-genai==2.0.5
+langchain-community==0.3.7
+
+# --- Data Validation ---
+pydantic==2.10.1
+pydantic-settings==2.6.1
+
+# --- HTTP Client ---
+httpx==0.28.0
+aiohttp==3.11.6
+
+# --- Database (Phase 1 uses SQLite for simplicity) ---
+sqlalchemy==2.0.36
+aiosqlite==0.20.0              # Async SQLite driver
+greenlet>=3.1.1                # AsyncIO driver requirement for SQLAlchemy
+
+# --- Cache / Session ---
+redis==5.2.0                   # Will use in Phase 3+
+
+# --- Security ---
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.1
+
+# --- Local Custom AI / Transformer ---
+torch>=2.5.0
+
+# --- Utilities ---
+rich==13.9.4                   # Beautiful terminal output
+typer==0.13.0                  # CLI interface
+python-multipart==0.0.17      # Form data support
+websockets==14.1
+colorama==0.4.6
+
+# --- Logging ---
+loguru==0.7.2
+
+# --- Testing ---
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx                          # Already listed above (for TestClient)

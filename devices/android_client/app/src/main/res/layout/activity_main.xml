@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#050B14"
+    android:padding="24dp"
+    android:gravity="center_horizontal">
+
+    <!-- Top Holographic Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="JARVIS AI"
+        android:textColor="#00D2FF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.15"
+        android:layout_marginTop="32dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="MOBILE REMOTE NODE"
+        android:textColor="#80D0FF"
+        android:textSize="12sp"
+        android:letterSpacing="0.2"
+        android:layout_marginBottom="32dp" />
+
+    <!-- Status Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#0C1D36"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SYSTEM STATUS"
+            android:textColor="#00D2FF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CONNECTING TO CORE HUB..."
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Telemetry Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#0C1D36"
+        android:padding="16dp"
+        android:layout_marginBottom="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HARDWARE TELEMETRY"
+            android:textColor="#00D2FF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_telemetry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Battery: -- | Storage: --"
+            android:textColor="#A0C0E0"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Arc Reactor Voice Activation Button -->
+    <Button
+        android:id="@+id/btn_voice"
+        android:layout_width="200dp"
+        android:layout_height="64dp"
+        android:text="VOICE COMMAND"
+        android:textColor="#050B14"
+        android:textStyle="bold"
+        android:backgroundTint="#00D2FF"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>

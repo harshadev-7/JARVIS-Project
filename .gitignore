@@ -1,0 +1,60 @@
+# ── Environment & Secrets ─────────────────────────────────────────────────
+.env
+*.env.local
+*.env.production
+.env.*
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.Python
+.venv/
+venv/
+env/
+.cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.gradle/
+
+# ── Database files ────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.db-*
+
+# ── Logs ──────────────────────────────────────────────────────────────────
+logs/*.log
+logs/*.zip
+voice_cache/
+checkpoints/
+*.pt
+*.pth
+*.safetensors
+
+# ── IDE ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS ────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Node / Frontend ───────────────────────────────────────────────────────
+node_modules/
+ui/web/dist/
+ui/desktop/dist/
+
+# ── Testing ───────────────────────────────────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage
