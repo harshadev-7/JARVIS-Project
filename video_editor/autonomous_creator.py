@@ -238,6 +238,9 @@ class AutonomousVideoCreator:
 
         filter_complex = f"[0:v]{title_filter},{sub_filter},{watermark_filter}[vout]"
 
+        # Check if synthesized audio exists and has real audio data (> 1 KB)
+        has_real_audio = bool(audio_path and Path(audio_path).exists() and Path(audio_path).stat().st_size > 1000)
+
         # FFmpeg lavfi generator: generates 1080x1920 9:16 vertical canvas
         cmd = [
             self.ffmpeg_path or "ffmpeg",
@@ -246,18 +249,19 @@ class AutonomousVideoCreator:
             "-i", f"color=c=0x0b0f19:s=1080x1920:d={brief.duration_sec:.2f}:r=30",
         ]
 
-        if audio_path and Path(audio_path).exists():
+        if has_real_audio:
             cmd.extend(["-i", str(audio_path)])
+        else:
+            # Generate tone or stereo sound so audio stream is valid and matches duration
+            cmd.extend(["-f", "lavfi", "-i", f"sine=frequency=220:duration={brief.duration_sec:.2f}"])
 
         cmd.extend([
             "-filter_complex", filter_complex,
             "-map", "[vout]",
-        ])
-
-        if audio_path and Path(audio_path).exists():
-            cmd.extend(["-map", "1:a", "-c:a", "aac", "-b:a", "160k", "-shortest"])
-
-        cmd.extend([
+            "-map", "1:a",
+            "-c:a", "aac",
+            "-b:a", "160k",
+            "-t", f"{brief.duration_sec:.2f}",
             "-c:v", "libx264",
             "-preset", "veryfast",
             "-crf", "23",

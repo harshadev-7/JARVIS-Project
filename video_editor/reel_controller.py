@@ -50,25 +50,14 @@ class ReelController:
         if subcmd == "analyze":
             return self._handle_analyze()
 
-        # 4. Parse target duration if specified (e.g. '30 seconds', '15s', '60')
-        target_dur = 30.0
-        dur_m = re.search(r"(\d+(?:\.\d+)?)\s*(?:s|sec|seconds)?\b", clean_cmd)
-        if dur_m:
-            try:
-                parsed_val = float(dur_m.group(1))
-                if 5.0 <= parsed_val <= 300.0:
-                    target_dur = parsed_val
-            except Exception:
-                pass
+        # 4. Extract rich structured parameters
+        parsed = self.parse_structured_prompt(clean_cmd)
+        target_dur = parsed["duration_sec"]
+        style = parsed["style"]
+        custom_text = parsed["custom_text"]
+        subject = parsed["subject"]
 
-        # 5. Determine Style Preset
-        style = "reels"
-        for candidate in ["anime", "cinematic", "car", "luxury", "velocity", "shorts"]:
-            if candidate in clean_cmd.lower():
-                style = candidate
-                break
-
-        # 6. Check for available footage in media/input/
+        # 5. Check for available footage in media/input/
         input_videos = workspace_manager.list_input_videos()
         input_audio = workspace_manager.list_input_audio()
         bg_audio = input_audio[0] if input_audio else None
@@ -80,14 +69,66 @@ class ReelController:
                 target_duration=target_dur,
                 input_videos=input_videos,
                 bg_audio=bg_audio,
+                custom_title=custom_text or subject,
             )
         else:
-            # Autonomous Faceless Video Generation with full FFmpeg rendering!
+            # Autonomous Video Generation with full FFmpeg rendering!
             return await self._execute_autonomous_pipeline(
                 style=style,
                 target_duration=target_dur,
-                topic=clean_cmd if clean_cmd and clean_cmd not in (style, "default") else None,
+                topic=subject,
+                custom_title=custom_text,
             )
+
+    def parse_structured_prompt(self, prompt: str) -> Dict[str, Any]:
+        """Extract topic, style, duration, format, custom text, and effects from rich prompts."""
+        # 1. Custom text / headline (e.g. Add text: "THE GOAT NEVER FALLS")
+        custom_text = None
+        text_m = re.search(r'(?:add\s+text|text|caption|headline|title):\s*["\']?([^"\'\n\r]+)["\']?', prompt, re.IGNORECASE)
+        if text_m:
+            custom_text = text_m.group(1).strip()
+
+        # 2. Duration (e.g. Duration: 30 seconds, 30s)
+        dur = 30.0
+        dur_m = re.search(r'(?:duration:\s*)?(\d+(?:\.\d+)?)\s*(?:s|sec|seconds)?\b', prompt, re.IGNORECASE)
+        if dur_m:
+            try:
+                val = float(dur_m.group(1))
+                if 5.0 <= val <= 300.0:
+                    dur = val
+            except Exception:
+                pass
+
+        # 3. Style preset
+        style = "reels"
+        lower = prompt.lower()
+        if "dragon ball" in lower or "goku" in lower or "anime" in lower:
+            style = "anime"
+        elif "velocity" in lower or "speed ramp" in lower:
+            style = "velocity"
+        elif "cinematic" in lower:
+            style = "cinematic"
+        elif "car" in lower:
+            style = "car"
+        elif "luxury" in lower:
+            style = "luxury"
+        elif "short" in lower:
+            style = "shorts"
+
+        # 4. Core Subject / Topic extraction
+        first_line = prompt.strip().splitlines()[0]
+        subject = re.sub(r'(?i)^/reel\s*', '', first_line).strip()
+        subject = re.sub(r'(?i)^(?:create|make|edit|generate)\s+(?:a|an)\s+', '', subject).strip()
+        subject = re.sub(r'[\.:].*$', '', subject).strip()
+        if not subject or len(subject) < 3:
+            subject = "Dragon Ball Goku Ultra Instinct" if "goku" in lower else f"{style.title()} Highlights"
+
+        return {
+            "subject": subject,
+            "style": style,
+            "duration_sec": dur,
+            "custom_text": custom_text,
+        }
 
     def _handle_status(self) -> str:
         """Return workspace telemetry and rendering engine readiness."""
@@ -144,6 +185,7 @@ class ReelController:
         target_duration: float,
         input_videos: List[Path],
         bg_audio: Optional[Path],
+        custom_title: Optional[str] = None,
     ) -> str:
         """Execute autonomous editing on user-supplied raw footage."""
         log.info(f"Initiating footage editing pipeline for style '{style}' ({target_duration}s)...")
@@ -156,6 +198,7 @@ class ReelController:
             scenes=analysis.scenes,
             style=style,
             target_duration=target_duration,
+            custom_title=custom_title,
             brand_name="KANKI.7",
         )
         self._last_plan = plan
@@ -194,13 +237,15 @@ class ReelController:
         style: str,
         target_duration: float,
         topic: Optional[str] = None,
+        custom_title: Optional[str] = None,
     ) -> str:
         """Execute autonomous synthesis when no input video files are present."""
         clean_topic = topic or f"{style.title()} Trends & Highlights"
+        display_watermark = f"{custom_title} • KANKI.7" if custom_title else "KANKI.7"
         res = await autonomous_video_creator.create_autonomous_video(
             topic=clean_topic,
             save_directory=workspace_manager.get_output_dir("reels"),
-            watermark_text="KANKI.7",
+            watermark_text=display_watermark,
             include_voiceover=True,
         )
         note = (
