@@ -192,21 +192,23 @@ class DeviceManagementAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="DeviceManagementAgent",
-            role="Multi-device registration, secure pairing, telemetry sync, and remote task dispatching.",
-            capabilities=["device_pairing", "remote_dispatch", "device_telemetry"],
+            role="Multi-device registration, secure pairing, telemetry sync, file transfer, and remote task dispatching.",
+            capabilities=[
+                "device_pairing",
+                "remote_dispatch",
+                "device_telemetry",
+                "lan_discovery",
+                "folder_sandboxing",
+                "file_transfer",
+                "notification_sync",
+            ],
             required_autonomy_level=3,
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentTaskResult:
-        from devices.device_registry.registry import device_registry
-        devs = device_registry.list_devices()
-        return AgentTaskResult(
-            agent_name=self.name,
-            task_id="dev-01",
-            success=True,
-            data={"total_devices": len(devs)},
-            summary=f"Device Network: {len(devs)} registered hardware endpoint(s).",
-        )
+        from devices.device_agent import DeviceAgent
+        agent = DeviceAgent()
+        return await agent.execute(task, context)
 
 
 # 8. Social Media Agent
