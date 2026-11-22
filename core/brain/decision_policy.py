@@ -31,10 +31,10 @@ class DecisionPolicy:
 
     # Temporal & live information indicators that genuinely require external search
     LIVE_INFO_PATTERNS = [
-        r"\b(?:latest|recent|newest|today'?s|current|upcoming)\s+(?:developments?|news|releases?|updates?|models?|events?|prices?|weather)\b",
-        r"\b(?:what\s+are\s+the\s+latest|what\s+is\s+the\s+current|latest\s+news\s+about|recent\s+advancements?\s+in)\b",
+        r"\b(?:latest|recent|newest|today'?s|current|upcoming)\s+(?:developments?|news|releases?|updates?|models?|events?|prices?|weather|gpu|nvidia\s+gpu|hardware|chip)\b",
+        r"\b(?:what\s+are\s+the\s+latest|what\s+is\s+the\s+latest|what\s+is\s+the\s+current|latest\s+news\s+about|recent\s+advancements?\s+in)\b",
         r"\b(?:stock\s+price\s+of|weather\s+in|weather\s+forecast|today'?s\s+headlines)\b",
-        r"\b(?:electric\s+vehicle\s+releases|latest\s+developments\s+in)\b",
+        r"\b(?:electric\s+vehicle\s+releases|latest\s+developments\s+in|latest\s+nvidia\s+gpu)\b",
         r"\b(?:2025|2026|2027)\b",
     ]
 

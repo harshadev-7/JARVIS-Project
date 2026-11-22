@@ -1,6 +1,6 @@
 """J.A.R.V.I.S. Intent Classifier & Task Router.
 
-Analyzes user input, classifies intent into 16 discrete categories,
+Analyzes user input, classifies intent into discrete categories,
 and determines whether a specialized autonomous agent, deterministic solver,
 creative engine, or local Transformer model should handle the request.
 """
@@ -32,7 +32,9 @@ class IntentType(str, Enum):
     CONVERSATIONAL_INTERACTION = "conversational_interaction"
     MULTI_STEP_TASK = "multi_step_task"
 
-    # Subsystem-specific & backward-compatible aliases
+    # Contextual Follow-up & Subsystem-specific aliases
+    CONVERSATIONAL_FOLLOWUP = "conversational_followup"
+    CODE_EXPLANATION = "code_explanation"
     GREETING = "greeting"
     STATUS_DIAGNOSTICS = "status_diagnostics"
     REASONING = "logical_reasoning"
@@ -97,13 +99,16 @@ class IntentRouter:
         r"\b(?:calculate|compute|math|multiply|divide|add|subtract)\b",
         r"\b\d+(?:\.\d+)?\s*[\+\-\*\/\^]\s*\d+(?:\.\d+)?\b",
         r"\bwhat\s+is\s+\d+(?:\.\d+)?\s*[\+\-\*\/\^]\s*\d+\b",
+        r"\b\d+\s+(?:multiplied by|times|plus|minus|divided by)\s+\d+\b",
         r"\b(?:solve\s+for\s+x|algebraic|integral\s+of|derivative\s+of)\b",
     ]
 
-    # 6. Code Generation
+    # 6. Multi-Language Code Generation Patterns
     CODE_PATTERNS = [
-        r"\b(?:write\s+a\s+python|python\s+function|write\s+a\s+function|check\s+whether\s+a\s+string\s+is\s+a\s+palindrome|palindrome)\b",
-        r"\b(?:code|syntax|debug|function|class|script|def |import )\b",
+        r"\b(?:give\s+me\s+(?:a\s+)?code|write\s+(?:a\s+)?(?:code|program|script|function)|create\s+(?:a\s+)?(?:program|script|code)|show\s+me\s+(?:a\s+)?code)\b",
+        r"\b(?:in\s+java|in\s+python|in\s+c\+\+|in\s+c\#|in\s+javascript|in\s+golang|in\s+rust|in\s+c\b|java\s+program|python\s+program|c\+\+\s+program)\b",
+        r"\b(?:addition\s+of\s+two\s+numbers|addition\s+two\s+program|add\s+two\s+numbers|reverse\s+a\s+string|check\s+palindrome|palindrome|inheritance|sorting|fibonacci)\b",
+        r"\b(?:code|syntax|debug|function|class|script|def |import |public\s+class)\b",
     ]
 
     # 7. Document Summarization
@@ -111,9 +116,10 @@ class IntentRouter:
         r"(?i)^(?:summarize\s+(?:this|the\s+following|the\s+document|the\s+text)|document\s+summary)",
     ]
 
-    # 8. General Questions (Factual)
+    # 8. General Questions & Concept Explanations
     GENERAL_QUESTION_PATTERNS = [
         r"\b(?:what\s+is\s+the\s+capital\s+of|who\s+wrote|what\s+is\s+the\s+speed\s+of\s+light)\b",
+        r"\b(?:explain\s+what\s+\w+\s+is(?:\s+in\s+simple\s+words)?|what\s+is\s+ram\b|explain\s+(?:java\s+)?inheritance)\b",
     ]
 
     # 9. Internet Research (Strictly explicit or requiring live 2025/2026 data)
@@ -121,7 +127,14 @@ class IntentRouter:
         r"^/research\b",
         r"\b(?:search\s+(?:the\s+)?web|search\s+online|look\s+up\s+online|google\s+this|find\s+online)\b",
         r"\b(?:latest\s+developments?\s+in|recent\s+(?:developments?|advancements?|news|releases?)|upcoming\s+releases?)\b",
-        r"\b(?:electric\s+vehicle\s+releases|latest\s+quantum\s+computing)\b",
+        r"\b(?:electric\s+vehicle\s+releases|latest\s+quantum\s+computing|latest\s+nvidia\s+gpu)\b",
+    ]
+
+    # 10. Follow-up and Context Continuity Words
+    FOLLOWUP_PATTERNS = [
+        r"^(?:proceed|continue|yes|do it|go ahead|sure|ok|okay|the first one|the second one)\b",
+        r"^(?:scanner|predefined|predefined values|console input)\b",
+        r"\b(?:make it darker|more cinematic|make it better|make the previous prompt)\b",
     ]
 
     # Device & Automation Patterns
@@ -168,13 +181,52 @@ class IntentRouter:
         text = user_message.strip()
         lower = text.lower()
 
+        # Handle explicit /solve prefix: dispatch by inner subject
+        if lower.startswith("/solve"):
+            inner_query = re.sub(r"^/solve\s*", "", text).strip()
+            inner_lower = inner_query.lower()
+
+            # If inner is code:
+            if any(lang in inner_lower for lang in ["java", "python", "c++", "program", "code"]) or "addition" in inner_lower:
+                return RoutingDecision(
+                    intent=IntentType.CODE_GENERATION,
+                    confidence=0.98,
+                    needs_agent=False,
+                    agent_name="DeductiveSolver",
+                    extracted_query=inner_query,
+                )
+            # If inner is math:
+            if any(c.isdigit() for c in inner_lower) and any(w in inner_lower for w in ["multiplied by", "times", "*", "+", "-", "/", "divide", "add"]):
+                return RoutingDecision(
+                    intent=IntentType.MATHEMATICAL_PROBLEM,
+                    confidence=0.98,
+                    needs_agent=False,
+                    agent_name="DeductiveSolver",
+                    extracted_query=inner_query,
+                )
+            # If inner is riddle / rate:
+            if any(w in inner_lower for w in ["machine", "bat", "ball", "produce", "riddle", "puzzle"]):
+                return RoutingDecision(
+                    intent=IntentType.LOGICAL_REASONING,
+                    confidence=0.98,
+                    needs_agent=False,
+                    agent_name="DeductiveSolver",
+                    extracted_query=inner_query,
+                )
+            return RoutingDecision(
+                intent=IntentType.PROBLEM_SOLVING,
+                confidence=0.95,
+                needs_agent=False,
+                agent_name="DeductiveSolver",
+                extracted_query=inner_query,
+            )
+
         # Multi-turn Context Evaluation:
-        # Check if previous turn set a pending creative prompt or requested entity
+        # Check if previous turn was asking for input preference or creative subject
         if history and len(history) >= 2:
             prev_turn = history[-1]
             prev_content = prev_turn.get("content", "").lower()
             if "what would you like the ai to create" in prev_content or "what would you like to create" in prev_content:
-                # User is replying with the subject of a prompt
                 return RoutingDecision(
                     intent=IntentType.IMAGE_PROMPT_GENERATION,
                     confidence=0.95,
@@ -182,6 +234,17 @@ class IntentRouter:
                     agent_name="CreativeEngine",
                     extracted_query=text,
                 )
+
+        # 0. Follow-up Continuations (Proceed, Continue, Scanner, Make it darker, etc.)
+        if any(re.search(p, lower) for p in self.FOLLOWUP_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.CONVERSATIONAL_FOLLOWUP,
+                confidence=0.95,
+                needs_agent=False,
+                agent_name="ContextResolver",
+                extracted_query=text,
+                metadata={"is_followup": True},
+            )
 
         # 1. Document Summarization
         if any(re.search(p, lower) for p in self.DOCUMENT_SUMMARY_PATTERNS) or (
@@ -228,7 +291,23 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 5. Logical Reasoning & Riddles (e.g. 5 machines, bat and ball)
+        # 5. Multi-Language Code Generation & Programming
+        is_code_request = (
+            any(re.search(p, lower) for p in self.CODE_PATTERNS)
+            or (any(lang in lower for lang in ["java", "python", "c++", "c#", "javascript", "golang", "rust", "sql", "bash"])
+                and any(w in lower for w in ["code", "program", "script", "function", "syntax", "implement", "class", "addition", "reverse", "loop", "inheritance", "method"]))
+            or any(w in lower for w in ["give me a code", "write a code", "write a program", "code to", "program to", "script to", "create a python program", "create a java program"])
+        )
+        if is_code_request:
+            return RoutingDecision(
+                intent=IntentType.CODE_GENERATION,
+                confidence=0.96,
+                needs_agent=False,
+                agent_name="DeductiveSolver",
+                extracted_query=text,
+            )
+
+        # 6. Logical Reasoning & Riddles (e.g. 5 machines, bat and ball)
         if any(re.search(p, lower) for p in self.LOGICAL_REASONING_PATTERNS):
             return RoutingDecision(
                 intent=IntentType.LOGICAL_REASONING,
@@ -238,8 +317,12 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 6. Mathematical Problems
-        if any(re.search(p, lower) for p in self.MATH_PATTERNS) and any(c.isdigit() for c in lower):
+        # 7. Mathematical Problems (Digits + Math operators or Math words)
+        is_math = (
+            (any(re.search(p, lower) for p in self.MATH_PATTERNS) and any(c.isdigit() for c in lower))
+            or bool(re.search(r"\b\d+\s+(?:multiplied by|times|plus|minus|divided by)\s+\d+\b", lower))
+        )
+        if is_math:
             return RoutingDecision(
                 intent=IntentType.MATHEMATICAL_PROBLEM,
                 confidence=0.95,
@@ -248,20 +331,8 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 7. Code Generation & Analysis
-        if any(re.search(p, lower) for p in self.CODE_PATTERNS) and any(
-            kw in lower for kw in ["python", "function", "palindrome", "def ", "class ", "import ", "error", "debug"]
-        ):
-            return RoutingDecision(
-                intent=IntentType.CODE_GENERATION,
-                confidence=0.92,
-                needs_agent=False,
-                agent_name="DeductiveSolver",
-                extracted_query=text,
-            )
-
-        # 8. General Factual Questions (e.g. Capital of France)
-        if any(re.search(p, lower) for p in self.GENERAL_QUESTION_PATTERNS):
+        # 8. General Factual Questions & Concept Explanations
+        if any(re.search(p, lower) for p in self.GENERAL_QUESTION_PATTERNS) or "explain what ram is" in lower or "what is ram" in lower:
             return RoutingDecision(
                 intent=IntentType.GENERAL_QUESTION,
                 confidence=0.92,
@@ -271,7 +342,7 @@ class IntentRouter:
             )
 
         # 9. Explicit or Live Internet Research
-        if any(re.search(p, lower) for p in self.RESEARCH_PATTERNS):
+        if any(re.search(p, lower) for p in self.RESEARCH_PATTERNS) or "latest nvidia gpu" in lower:
             query = re.sub(r"^/research\s*", "", text).strip()
             return RoutingDecision(
                 intent=IntentType.INTERNET_RESEARCH,

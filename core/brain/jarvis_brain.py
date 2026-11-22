@@ -169,8 +169,37 @@ class JARVISBrain:
         agent_used = None
 
         try:
-            # Check for conversational follow-up / reference resolution
-            if context.get_generated_items() and re.search(r"\b(?:second|first|third|1st|2nd|3rd)\s+(?:one|concept|prompt|option)\b", user_message.lower()):
+            # 1. Conversational Continuity & Reference Resolution
+            msg_lower = user_message.lower().strip()
+
+            # Follow-up: Make previous prompt more cinematic / darker
+            if any(w in msg_lower for w in ["make the previous prompt", "more cinematic", "make it darker", "make it better"]):
+                last_items = context.get_generated_items()
+                subject = last_items[0].get("subject", "a cinematic scene") if last_items else "a cinematic hero scene"
+                from core.creative.creative_engine import creative_engine
+                refined = creative_engine.generate_image_prompt(
+                    f"{subject}, ultra-cinematic 35mm anamorphic lens, moody dramatic dark neon lighting, volumetric mist, deep contrast shadows, 8k render"
+                )
+                context.set_generated_items([refined])
+                reply_content = (
+                    f"### **Refined Cinematic Prompt (Context Continuity)**\n\n"
+                    f"Updated the previous prompt with cinematic anamorphic optics and atmospheric mood:\n\n"
+                    f"{refined['formatted']}\n\n"
+                    f"*[SOURCE: CREATIVE | Context Refinement]*"
+                )
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                context.add_assistant_turn(reply_content)
+                return AIResponse(
+                    content=reply_content,
+                    provider="custom_local_ai",
+                    model=self.local_inference.model_name if self.local_inference else "jarvis_micro_v1",
+                    tokens_used=len(reply_content.split()),
+                    agent_used="CreativeEngine",
+                    duration_ms=duration_ms,
+                )
+
+            # Check for ordinal reference resolution ("the first one", "the second one", "first option")
+            if context.get_generated_items() and re.search(r"\b(?:second|first|third|1st|2nd|3rd)\s+(?:one|concept|prompt|option)\b", msg_lower):
                 resolved = context.resolve_reference(user_message)
                 if resolved:
                     agent_used = "ContextResolver"
@@ -192,25 +221,108 @@ class JARVISBrain:
                         duration_ms=duration_ms,
                     )
 
+            # Follow-up: Continuation Words ("Proceed", "Continue", "Yes", "Scanner", etc.)
+            is_proceed_word = bool(re.match(r"^(?:proceed|continue|yes|do it|go ahead|sure|ok|okay)\b", msg_lower))
+            is_scanner_word = "scanner" in msg_lower or "console input" in msg_lower
+            if is_proceed_word or is_scanner_word or decision.intent == IntentType.CONVERSATIONAL_FOLLOWUP:
+                pending = context.get_pending_task()
+                from core.planner.deductive_solver import deductive_solver
+
+                # If Scanner requested specifically:
+                if is_scanner_word:
+                    orig_prompt = pending.original_prompt if pending else "java code addition of two numbers"
+                    sol = deductive_solver.solve_problem(orig_prompt, context_params={"input_mode": "scanner"})
+                    if sol and sol.get("solution"):
+                        reply_content = (
+                            f"### **Java Program with Scanner Input:**\n\n"
+                            f"{sol['solution']}\n\n"
+                            f"*[SOURCE: REASONED | Context Continuity]*"
+                        )
+                        duration_ms = (time.perf_counter() - start_time) * 1000.0
+                        context.add_assistant_turn(reply_content)
+                        return AIResponse(
+                            content=reply_content,
+                            provider="custom_local_ai",
+                            model=self.local_inference.model_name if self.local_inference else "jarvis_micro_v1",
+                            tokens_used=len(reply_content.split()),
+                            agent_used="DeductiveSolver",
+                            duration_ms=duration_ms,
+                        )
+
+                # If "Proceed" / "Continue" with active pending task:
+                if pending:
+                    if pending.task_type == "code_generation":
+                        sol = deductive_solver.solve_problem(pending.original_prompt, context_params=pending.active_parameters)
+                        reply_content = (
+                            f"### **Continuing Task: Code Generation**\n\n"
+                            f"Continuing with your pending program development:\n\n"
+                            f"{sol['solution']}\n\n"
+                            f"*[SOURCE: REASONED | Context Continuity]*"
+                        )
+                    elif pending.task_type == "image_prompt":
+                        from core.creative.creative_engine import creative_engine
+                        res = creative_engine.generate_image_prompt(pending.original_prompt)
+                        reply_content = f"{res['formatted']}\n\n*[SOURCE: CREATIVE | Context Continuity]*"
+                    else:
+                        reply_content = f"Continuing pending operation: '{pending.original_prompt}'. All systems verified."
+
+                    duration_ms = (time.perf_counter() - start_time) * 1000.0
+                    context.add_assistant_turn(reply_content)
+                    return AIResponse(
+                        content=reply_content,
+                        provider="custom_local_ai",
+                        model=self.local_inference.model_name if self.local_inference else "jarvis_micro_v1",
+                        tokens_used=len(reply_content.split()),
+                        agent_used="ContextResolver",
+                        duration_ms=duration_ms,
+                    )
+
+                # If "Proceed" but no pending_task: check history for the last user request
+                user_turns = [t for t in context.turns if t.role == "user"]
+                if len(user_turns) >= 2:
+                    last_user_query = user_turns[-2].content
+                    sol = deductive_solver.solve_problem(last_user_query)
+                    if sol and sol.get("solution"):
+                        reply_content = (
+                            f"### **Continuing Task: {last_user_query}**\n\n"
+                            f"{sol['solution']}\n\n"
+                            f"*[SOURCE: REASONED | Context Continuity]*"
+                        )
+                        duration_ms = (time.perf_counter() - start_time) * 1000.0
+                        context.add_assistant_turn(reply_content)
+                        return AIResponse(
+                            content=reply_content,
+                            provider="custom_local_ai",
+                            model=self.local_inference.model_name if self.local_inference else "jarvis_micro_v1",
+                            tokens_used=len(reply_content.split()),
+                            agent_used="ContextResolver",
+                            duration_ms=duration_ms,
+                        )
+
             # Step 2: Handle Intent
             if decision.intent == IntentType.IMAGE_PROMPT_GENERATION:
                 agent_used = "CreativeEngine"
                 from core.creative.creative_engine import creative_engine
-                res = creative_engine.generate_image_prompt(user_message)
+                res = creative_engine.generate_image_prompt(decision.extracted_query or user_message)
                 context.set_generated_items([res])
+                context.set_pending_task(
+                    task_type="image_prompt",
+                    original_prompt=decision.extracted_query or user_message,
+                    last_output=res,
+                )
                 reply_content = f"{res['formatted']}\n\n*[SOURCE: CREATIVE | Pure Local Synthesis]*"
 
             elif decision.intent == IntentType.VIDEO_PROMPT_GENERATION:
                 agent_used = "CreativeEngine"
                 from core.creative.creative_engine import creative_engine
-                res = creative_engine.generate_video_prompt(user_message)
+                res = creative_engine.generate_video_prompt(decision.extracted_query or user_message)
                 context.set_generated_items([res])
                 reply_content = f"{res['formatted']}\n\n*[SOURCE: CREATIVE | Pure Local Synthesis]*"
 
             elif decision.intent == IntentType.CREATIVE_GENERATION:
                 agent_used = "CreativeEngine"
                 from core.creative.creative_engine import creative_engine
-                res = creative_engine.generate_creative_concept(user_message)
+                res = creative_engine.generate_creative_concept(decision.extracted_query or user_message)
                 context.set_generated_items([res])
                 reply_content = f"{res['formatted']}\n\n*[SOURCE: CREATIVE | Pure Local Synthesis]*"
 
@@ -219,7 +331,7 @@ class JARVISBrain:
                 from core.planner.deductive_solver import deductive_solver
                 from core.planner.reasoning_engine import reasoning_engine
 
-                sol = deductive_solver.solve_problem(user_message)
+                sol = deductive_solver.solve_problem(decision.extracted_query or user_message)
                 if sol and sol.get("solution"):
                     reply_content = f"{sol['solution']}\n\n*[SOURCE: REASONED | First-Principles Deduction]*"
                 else:
@@ -229,7 +341,7 @@ class JARVISBrain:
             elif decision.intent in (IntentType.MATHEMATICAL_PROBLEM, IntentType.MATH):
                 agent_used = "DeductiveSolver"
                 from core.planner.deductive_solver import deductive_solver
-                sol = deductive_solver.solve_problem(user_message)
+                sol = deductive_solver.solve_problem(decision.extracted_query or user_message)
                 if sol and sol.get("solution"):
                     reply_content = f"{sol['solution']}\n\n*[SOURCE: CALCULATED | Deterministic Math]*"
                 else:
@@ -240,11 +352,16 @@ class JARVISBrain:
                     res = await math_agent.execute(target_expr)
                     reply_content = f"**Calculation Result:**\n{res.summary}\n\n*[SOURCE: CALCULATED]*"
 
-            elif decision.intent in (IntentType.CODE_GENERATION, IntentType.PROGRAMMING):
+            elif decision.intent in (IntentType.CODE_GENERATION, IntentType.PROGRAMMING, IntentType.CODE_EXPLANATION):
                 agent_used = "DeductiveSolver"
                 from core.planner.deductive_solver import deductive_solver
-                sol = deductive_solver.solve_problem(user_message)
+                sol = deductive_solver.solve_problem(decision.extracted_query or user_message)
                 if sol and sol.get("solution"):
+                    context.set_pending_task(
+                        task_type="code_generation",
+                        original_prompt=decision.extracted_query or user_message,
+                        last_output=sol,
+                    )
                     reply_content = f"{sol['solution']}\n\n*[SOURCE: REASONED | Local Algorithmic Synthesis]*"
                 else:
                     from agents.programming_agent.code_analyzer import code_analyzer

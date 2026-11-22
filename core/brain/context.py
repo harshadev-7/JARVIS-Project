@@ -12,6 +12,17 @@ from typing import Any, Dict, List, Optional
 
 
 @dataclass
+class PendingTask:
+    """State of an in-progress or awaiting-continuation task."""
+    task_type: str  # "code_generation", "image_prompt", "math", "reasoning", "research"
+    original_prompt: str
+    active_parameters: Dict[str, Any] = field(default_factory=dict)
+    awaiting_input: Optional[str] = None  # e.g. "input_mode", "subject", "clarification"
+    last_output: Optional[Any] = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+@dataclass
 class ContextTurn:
     """A single turn in the conversation history."""
     role: str  # "user" | "assistant" | "system"
@@ -31,6 +42,32 @@ class ConversationContext:
         self.last_intent: Optional[str] = None
         self.last_generated_items: List[Dict[str, Any]] = []
         self.last_topic: Optional[str] = None
+        self.pending_task: Optional[PendingTask] = None
+
+    def set_pending_task(
+        self,
+        task_type: str,
+        original_prompt: str,
+        active_parameters: Optional[Dict[str, Any]] = None,
+        awaiting_input: Optional[str] = None,
+        last_output: Optional[Any] = None,
+    ) -> None:
+        """Register or update an active pending task awaiting user follow-up."""
+        self.pending_task = PendingTask(
+            task_type=task_type,
+            original_prompt=original_prompt,
+            active_parameters=active_parameters or {},
+            awaiting_input=awaiting_input,
+            last_output=last_output,
+        )
+
+    def get_pending_task(self) -> Optional[PendingTask]:
+        """Retrieve the current pending task."""
+        return self.pending_task
+
+    def clear_pending_task(self) -> None:
+        """Clear the current pending task."""
+        self.pending_task = None
 
     def add_user_turn(self, message: str, metadata: Optional[Dict[str, Any]] = None) -> None:
         turn = ContextTurn(role="user", content=message, metadata=metadata or {})
@@ -91,4 +128,4 @@ class ConversationContext:
         self.last_intent = None
 
 
-__all__ = ["ContextTurn", "ConversationContext"]
+__all__ = ["ContextTurn", "PendingTask", "ConversationContext"]

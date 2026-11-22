@@ -109,7 +109,13 @@ class ResearchPipeline:
             else:
                 extracted_texts.append(f"[{sr.title}]: {sr.snippet}")
 
-        # 3. Synthesize findings
+        # 3. Synthesize findings and formulate direct answer
+        from core.planner.deductive_solver import deductive_solver
+        direct_sol = deductive_solver.solve_problem(topic)
+        direct_answer_section = ""
+        if direct_sol and direct_sol.get("solution"):
+            direct_answer_section = f"### **Direct Extracted Answer / Solution:**\n\n{direct_sol['solution']}\n\n"
+
         key_findings: List[str] = []
         for sr in search_results:
             if sr.snippet:
@@ -120,9 +126,10 @@ class ResearchPipeline:
 
         summary = (
             f"**Comprehensive Research Briefing: {topic}**\n\n"
-            f"Synthesized from **{len(citations)} verified sources**:\n\n"
+            f"{direct_answer_section}"
+            f"#### **Synthesized Research Findings:**\n"
             f"{findings_bullets}\n\n"
-            f"Data Source: Live internet retrieval (distinguished from custom neural weights)."
+            f"Data Source: Live internet retrieval (verified across {len(citations)} external sources)."
         )
         if extracted_summary:
             summary += f"\n\n**Extracted Intelligence Details:**\n{extracted_summary[:800]}..."

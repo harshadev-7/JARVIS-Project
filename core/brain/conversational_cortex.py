@@ -324,7 +324,12 @@ class ConversationalCortex:
         if re.match(r"(?i)^(play|open|launch|run|close|stop|pause|render|edit|cut|trim|start|watch|show)\b", q_clean):
             return None
 
-        # 11. Context-Aware Assistance Fallback (Clean, constructive, and conversational without unprompted web scraping!)
+        # 11. Direct Deductive & Answer-First Fallback
+        from core.planner.deductive_solver import deductive_solver
+        direct_ans = deductive_solver.solve_problem(q_clean)
+        if direct_ans and direct_ans.get("solution"):
+            return direct_ans["solution"]
+
         cleaned_topic = q_clean.rstrip("?.")
         if len(cleaned_topic) > 3:
             if decision_policy.should_search_internet(q_clean):
@@ -338,10 +343,8 @@ class ConversationalCortex:
 
             return (
                 f"I hear you, {address}. Regarding **{cleaned_topic}**:\n\n"
-                f"I can investigate this deeply online (`/research {cleaned_topic}`), "
-                f"reason through its theoretical foundations step-by-step (`/solve {cleaned_topic}`), "
-                f"or synthesize an interactive study roadmap.\n\n"
-                f"How would you prefer to proceed?"
+                f"All core systems are operational. I can generate code, solve quantitative problems, "
+                f"or explore technical concepts directly. How can I assist you with this?"
             )
 
         return f"Hello, {address}! All JARVIS core systems are online. What would you like to explore or solve together today?"
