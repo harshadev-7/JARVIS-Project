@@ -276,6 +276,13 @@ class JARVISBrain:
                 res = await vision_agent.execute(decision.extracted_query or user_message)
                 reply_content = f"**Visual Intelligence Analysis:**\n{res.summary}"
 
+            elif decision.intent == IntentType.CYBERSECURITY:
+                agent_used = "CybersecurityMonitoringAgent"
+                from core.orchestrator.agent_registry import agent_registry
+                agent = agent_registry.get_agent("cybersecurity")
+                res = await agent.execute(decision.extracted_query or user_message)
+                reply_content = res.summary
+
             elif decision.intent == IntentType.RESEARCH:
                 agent_used = "ResearchAgent"
                 from services.internet.research_pipeline import research_pipeline

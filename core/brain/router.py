@@ -26,6 +26,7 @@ class IntentType(str, Enum):
     MEMORY_QUERY = "memory_query"
     VIDEO_EDITING = "video_editing"
     COMPUTER_VISION = "computer_vision"
+    CYBERSECURITY = "cybersecurity"
     GENERAL_CONVERSATION = "general_conversation"
 
 
@@ -90,6 +91,10 @@ class IntentRouter:
         r"\b(image\s+classif|classif\w*\s+image|inspect\s+image|analyze\s+image|view\s+image)\b",
         r"\b(ocr|extract\s+text|read\s+text\s+from|scan\s+text|detect\s+objects|bounding\s+box)\b",
         r"\b(visual\s+search|reverse\s+image|scene\s+understand|image\s+quality|smart\s+crop|auto\s+frame)\b",
+    ]
+    CYBERSECURITY_PATTERNS = [
+        r"\b(cwe-\d+|cve-\d+|vulnerability|cybersecurity|hardening|owasp|sql injection|xss|csrf|ssrf|zero trust|dnssec|tls 1\.3|syn flood|privilege escalation)\b",
+        r"\b(mitigate|remediation|security checklist|firewall rules|linux hardening|windows hardening)\b",
     ]
     MEMORY_QUERY_PATTERNS = [
         r"\b(what do you know about me|who am i|who i am|what is my name|what's my name)\b",
@@ -199,6 +204,19 @@ class IntentRouter:
                 confidence=0.92,
                 needs_agent=True,
                 agent_name="VisionAgent",
+                extracted_query=query or text,
+            )
+
+        # 5d. Cybersecurity Intelligence & Defensive Advisory
+        if lower.startswith("/secinfo") or lower.startswith("/cwe") or any(
+            re.search(p, lower) for p in self.CYBERSECURITY_PATTERNS
+        ):
+            query = re.sub(r"^/(secinfo|cwe)\s*", "", text).strip()
+            return RoutingDecision(
+                intent=IntentType.CYBERSECURITY,
+                confidence=0.92,
+                needs_agent=True,
+                agent_name="CybersecurityMonitoringAgent",
                 extracted_query=query or text,
             )
 

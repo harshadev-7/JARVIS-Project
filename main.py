@@ -62,6 +62,8 @@ HELP_TEXT = """
   [yellow]/devices[/yellow]     → List connected & authorized devices in the mesh
   [yellow]/scan[/yellow]        → Scan local network (UDP 54321) for companion devices
   [yellow]/folder <p>[/yellow] → Authorize a directory sandbox for verified file transfers
+  [yellow]/secinfo <q>[/yellow]→ Query defensive cybersecurity intelligence & threat models
+  [yellow]/cwe <id>[/yellow]   → Lookup CWE vulnerability definition & remediation guidance
   [yellow]/history[/yellow]    → Show conversation history
   [yellow]/clear[/yellow]      → Clear conversation memory
   [yellow]/status[/yellow]     → Show system status
@@ -75,7 +77,8 @@ Type any message to talk with JARVIS.
 COMMANDS = {
     "/help", "/solve", "/research", "/metrics", "/memory",
     "/agents", "/voice", "/history", "/clear", "/status",
-    "/session", "/exit", "/quit", "/pair", "/devices", "/scan", "/folder"
+    "/session", "/exit", "/quit", "/pair", "/devices", "/scan", "/folder",
+    "/secinfo", "/cwe"
 }
 
 
@@ -403,6 +406,22 @@ async def handle_command(command: str, session_id: str) -> bool:
                 console.print(f"[bold green]Folder Whitelisted:[/bold green] `{rec['path']}` (read_write)\n")
             except Exception as e:
                 console.print(f"[bold red]Failed to Authorize Folder:[/bold red] {e}\n")
+
+    elif cmd.startswith("/secinfo") or cmd.startswith("/cwe"):
+        parts = command.split(maxsplit=1)
+        q = parts[1].strip() if len(parts) > 1 else ""
+        from services.security.intelligence import cybersecurity_intelligence_engine
+        if not q:
+            console.print("[yellow]Usage:[/yellow] /secinfo <topic or question>  or  /cwe <cwe_id e.g. CWE-89>\n")
+            return True
+        with console.status("[dim]Querying cybersecurity intelligence index...[/dim]", spinner="dots"):
+            res = cybersecurity_intelligence_engine.query(q)
+        console.print(Panel(
+            res.defensive_advisory or "No advisory available for query.",
+            title=f"[bold green]JARVIS Cybersecurity Intelligence: '{q}'[/bold green]",
+            border_style="green",
+        ))
+        console.print()
 
     else:
         token = command.split()[0]

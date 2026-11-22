@@ -502,21 +502,43 @@ class CybersecurityMonitoringAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="CybersecurityMonitoringAgent",
-            role="Permission verification, audit trail monitoring, dangerous command defense, and credential shielding.",
-            capabilities=["permission_audit", "vulnerability_shield", "audit_logging"],
+            role="Cybersecurity intelligence, vulnerability analysis, threat modeling, and defensive system hardening.",
+            capabilities=[
+                "permission_audit",
+                "vulnerability_analysis",
+                "defensive_intelligence",
+                "audit_logging",
+                "hardening_advisory",
+            ],
             required_autonomy_level=1,
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentTaskResult:
-        from config.autonomy_levels import check_permission
-        level = context.get("autonomy_level", 2) if context else 2
-        allowed, reason = check_permission(level, "execute")
+        from services.security.intelligence import cybersecurity_intelligence_engine
+
+        # 1. Hardening checklist requests
+        if any(w in task.lower() for w in ["hardening", "checklist", "harden linux", "secure server"]):
+            chk = cybersecurity_intelligence_engine.get_hardening_checklist("linux")
+            steps_text = "\n".join([f"- **{s.title}** ({s.category}): `{s.verification_check}`" for s in chk.steps])
+            return AgentTaskResult(
+                agent_name=self.name,
+                task_id="sec-chk-01",
+                success=True,
+                data={"checklist": chk.model_dump() if hasattr(chk, "model_dump") else chk.dict()},
+                summary=f"### 🛡️ System Hardening Checklist: {chk.target_system}\n{steps_text}",
+            )
+
+        # 2. General cybersecurity intelligence query
+        res = cybersecurity_intelligence_engine.query(task)
         return AgentTaskResult(
             agent_name=self.name,
-            task_id="sec-01",
+            task_id="sec-intel-01",
             success=True,
-            data={"authorized": allowed, "level": level},
-            summary=f"Security Audit: Level {level} inspection passed. {reason}",
+            data={
+                "matched_topics_count": len(res.matched_topics),
+                "matched_vulns_count": len(res.matched_vulnerabilities),
+            },
+            summary=res.defensive_advisory or f"Cybersecurity analysis completed for '{task}'.",
         )
 
 
