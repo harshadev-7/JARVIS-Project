@@ -58,6 +58,10 @@ HELP_TEXT = """
   [yellow]/memory[/yellow]     → Inspect persistent user profile & episodic memory
   [yellow]/agents[/yellow]     → Inspect all 15 specialized agents in the swarm
   [yellow]/voice <txt>[/yellow]→ Synthesize speech audio using local/neural TTS
+  [yellow]/pair[/yellow]        → Generate one-time 6-digit cryptographic pairing PIN (TTL 5m)
+  [yellow]/devices[/yellow]     → List connected & authorized devices in the mesh
+  [yellow]/scan[/yellow]        → Scan local network (UDP 54321) for companion devices
+  [yellow]/folder <p>[/yellow] → Authorize a directory sandbox for verified file transfers
   [yellow]/history[/yellow]    → Show conversation history
   [yellow]/clear[/yellow]      → Clear conversation memory
   [yellow]/status[/yellow]     → Show system status
@@ -71,7 +75,7 @@ Type any message to talk with JARVIS.
 COMMANDS = {
     "/help", "/solve", "/research", "/metrics", "/memory",
     "/agents", "/voice", "/history", "/clear", "/status",
-    "/session", "/exit", "/quit"
+    "/session", "/exit", "/quit", "/pair", "/devices", "/scan", "/folder"
 }
 
 
@@ -314,6 +318,91 @@ async def handle_command(command: str, session_id: str) -> bool:
     elif cmd == "/clear":
         memory_manager.delete_session(session_id)
         console.print("[dim]Conversation memory cleared.[/dim]\n")
+
+    elif cmd == "/pair":
+        from devices.device_manager import device_manager
+        pin = device_manager.generate_pairing_pin()
+        console.print(Panel(
+            f"[bold green]One-Time Cryptographic Pairing Code:[/bold green] [bold yellow]{pin}[/bold yellow]\n\n"
+            f"• [bold]Time-To-Live:[/bold] 5 minutes (300 seconds)\n"
+            f"• [bold]Action:[/bold] Enter this PIN on your companion device (Android app or client) to pair.\n"
+            f"• [bold]Security:[/bold] Single-use token. Once paired, mutual SHA-256 tokens are provisioned.",
+            title="[bold blue]JARVIS Multi-Device Pairing Handshake[/bold blue]",
+            border_style="blue",
+        ))
+        console.print()
+
+    elif cmd == "/devices":
+        from devices.device_manager import device_manager
+        devs = device_manager.list_devices()
+        table = Table(title="Authorized Connected Devices (Mesh Network)", border_style="cyan")
+        table.add_column("Device ID", style="cyan")
+        table.add_column("Device Name", style="white")
+        table.add_column("Type", style="yellow")
+        table.add_column("Status", style="green")
+        table.add_column("Battery", style="magenta")
+        table.add_column("Capabilities", style="dim")
+        if devs:
+            for d in devs:
+                status_color = "green" if d.status.value == "online" else "red"
+                battery_str = f"{d.battery_level:.0f}%" if d.battery_level is not None else "--"
+                table.add_row(
+                    d.device_id,
+                    d.name,
+                    d.device_type.value,
+                    f"[{status_color}]{d.status.value}[/{status_color}]",
+                    battery_str,
+                    ", ".join(d.capabilities[:3]),
+                )
+        else:
+            table.add_row("dev-host", "This Workstation (Local)", "windows", "[green]online[/green]", "100%", "terminal, automation, video")
+        console.print(table)
+        console.print()
+
+    elif cmd == "/scan":
+        from devices.device_manager import device_manager
+        with console.status("[dim]Broadcasting presence beacon & scanning local subnet...[/dim]", spinner="dots"):
+            device_manager.broadcast_presence()
+            peers = device_manager.scan_network()
+        if peers:
+            table = Table(title="Local LAN Discovered Devices (JARVIS-DISC-v1)", border_style="green")
+            table.add_column("Device ID", style="cyan")
+            table.add_column("Name", style="white")
+            table.add_column("Type", style="yellow")
+            table.add_column("IP Address", style="magenta")
+            table.add_column("Service Port", style="green")
+            for p in peers:
+                table.add_row(p.get("device_id", "--"), p.get("name", "--"), p.get("device_type", "--"), p.get("ip", "--"), str(p.get("port", 8000)))
+            console.print(table)
+        else:
+            console.print("[dim]No companion devices detected broadcasting on UDP port 54321.[/dim]")
+            console.print("[dim]Host presence beacon sent to 255.255.255.255:54321 successfully.[/dim]")
+        console.print()
+
+    elif cmd.startswith("/folder"):
+        parts = command.split(maxsplit=1)
+        folder_arg = parts[1].strip() if len(parts) > 1 else ""
+        from devices.device_manager import device_manager
+        if not folder_arg:
+            folders = device_manager.list_authorized_folders()
+            table = Table(title="Authorized Directory Sandboxes", border_style="magenta")
+            table.add_column("Folder ID", style="cyan")
+            table.add_column("Path", style="white")
+            table.add_column("Access Level", style="green")
+            table.add_column("Authorized At", style="dim")
+            if folders:
+                for f in folders:
+                    table.add_row(f.get("folder_id", "--"), f.get("path", "--"), f.get("access_level", "--"), f.get("authorized_at", "--")[:19])
+            else:
+                table.add_row("--", "No external folders authorized yet", "read_only", "--")
+            console.print(table)
+            console.print("[dim]To authorize a folder: /folder <absolute_or_relative_path>[/dim]\n")
+        else:
+            try:
+                rec = device_manager.authorize_folder(folder_arg, access_level="read_write")
+                console.print(f"[bold green]Folder Whitelisted:[/bold green] `{rec['path']}` (read_write)\n")
+            except Exception as e:
+                console.print(f"[bold red]Failed to Authorize Folder:[/bold red] {e}\n")
 
     else:
         token = command.split()[0]

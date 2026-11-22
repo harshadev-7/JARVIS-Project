@@ -242,20 +242,10 @@ class JARVISBrain:
 
             elif decision.intent == IntentType.DEVICE_CONTROL:
                 agent_used = "DeviceManagementAgent"
-                from devices.device_registry.registry import device_registry
-                devices = device_registry.list_devices()
-                if not devices:
-                    code = device_registry.generate_pairing_code()
-                    reply_content = (
-                        "**Device Access Status:**\n"
-                        "I have full local control over this host workstation (Windows PC).\n\n"
-                        "To pair a nearby Android phone or tablet:\n"
-                        f"1. **One-Time Pairing Code Generated:** `{code}` (valid for 5 minutes)\n"
-                        f"2. Launch the JARVIS mobile client or issue `POST /devices/pair` with code `{code}`."
-                    )
-                else:
-                    dev_list = "\n".join([f"- **{d.name}** ({d.device_type.value}) — Battery: {d.battery_level or '--'}%" for d in devices])
-                    reply_content = f"**Connected Device Mesh:**\n{dev_list}"
+                from devices.device_agent import DeviceAgent
+                agent = DeviceAgent()
+                res = await agent.execute(decision.extracted_query or user_message)
+                reply_content = res.summary
 
             elif decision.intent == IntentType.COMPUTER_AUTOMATION:
                 agent_used = "ComputerAutomationAgent"
