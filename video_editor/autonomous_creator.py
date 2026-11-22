@@ -166,7 +166,11 @@ class AutonomousVideoCreator:
 
     def __init__(self):
         self.curator = TrendingTopicCurator()
-        self.ffmpeg_path = shutil.which("ffmpeg")
+        try:
+            import imageio_ffmpeg
+            self.ffmpeg_path = shutil.which("ffmpeg") or imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:
+            self.ffmpeg_path = shutil.which("ffmpeg")
 
     async def create_autonomous_video(
         self,

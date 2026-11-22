@@ -210,7 +210,23 @@ async def handle_command(command: str, session_id: str) -> bool:
         ))
         console.print()
 
-    elif cmd.startswith("/autoreel") or cmd.startswith("/create_video") or cmd.startswith("/reel") or cmd.startswith("/video"):
+    elif cmd.startswith("/reel"):
+        from video_editor.reel_controller import reel_controller
+        with console.status("[bold cyan]◈ JARVIS is analyzing footage, composing timeline & rendering...[/bold cyan]", spinner="dots"):
+            summary_msg = await reel_controller.execute_command(command)
+        try:
+            ctx = brain.get_context(session_id)
+            ctx.working_variables["last_reel_output"] = summary_msg
+        except Exception:
+            pass
+        console.print(Panel(
+            summary_msg,
+            title="[bold green]JARVIS Autonomous Video Editing Engine (KANKI.7)[/bold green]",
+            border_style="green",
+        ))
+        console.print()
+
+    elif cmd.startswith("/autoreel") or cmd.startswith("/create_video") or cmd.startswith("/video"):
         parts = command.split(maxsplit=1)
         arg = parts[1].strip() if len(parts) > 1 else ""
         from core.orchestrator.agent_registry import agent_registry

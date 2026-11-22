@@ -63,3 +63,16 @@ ui/desktop/dist/
 .pytest_cache/
 htmlcov/
 .coverage
+
+# ── Media & Editing Workspace ──────────────────────────────────────────────
+media/temporary/
+media/input/*
+!media/input/.gitkeep
+media/audio/*
+!media/audio/.gitkeep
+media/images/*
+!media/images/.gitkeep
+editing/timelines/*
+!editing/timelines/.gitkeep
+editing/projects/*
+!editing/projects/.gitkeep

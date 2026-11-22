@@ -21,6 +21,16 @@ from video_editor.effects import SocialFormattingConfig, VideoEffectsEngine, eff
 from video_editor.exporter import ExportQuality, ExportResult, QualityProfile, VideoExporter, video_exporter
 from video_editor.video_editing_agent import VideoEditingCoordinator, video_editing_coordinator
 from video_editor.autonomous_creator import ViralStoryBrief, TrendingTopicCurator, AutonomousVideoCreator, autonomous_video_creator
+from video_editor.workspace import WorkspaceManager, workspace_manager
+from video_editor.input_manager import VideoInputManager, VideoMediaMetadata, input_manager
+from video_editor.analyzer import VideoAnalyzer, SceneSegment, FootageAnalysisReport, video_analyzer
+from video_editor.editing_brain import EditingBrain, EditingDecisionPlan, editing_brain
+from video_editor.branding import BrandingConfig, BrandingManager, branding_manager
+from video_editor.quality_control import QualityControlEngine, QualityInspectionReport, quality_control_engine
+from video_editor.rendering_engine import RenderingEngine, RenderOutputResult, rendering_engine
+from video_editor.project_memory import ProjectMemory, project_memory
+from video_editor.adaptive_editor import AdaptiveEditor, adaptive_editor
+from video_editor.reel_controller import ReelController, reel_controller
 
 __all__ = [
     "MediaSafetyError",
@@ -55,4 +65,31 @@ __all__ = [
     "TrendingTopicCurator",
     "AutonomousVideoCreator",
     "autonomous_video_creator",
+    "WorkspaceManager",
+    "workspace_manager",
+    "VideoInputManager",
+    "VideoMediaMetadata",
+    "input_manager",
+    "VideoAnalyzer",
+    "SceneSegment",
+    "FootageAnalysisReport",
+    "video_analyzer",
+    "EditingBrain",
+    "EditingDecisionPlan",
+    "editing_brain",
+    "BrandingConfig",
+    "BrandingManager",
+    "branding_manager",
+    "QualityControlEngine",
+    "QualityInspectionReport",
+    "quality_control_engine",
+    "RenderingEngine",
+    "RenderOutputResult",
+    "rendering_engine",
+    "ProjectMemory",
+    "project_memory",
+    "AdaptiveEditor",
+    "adaptive_editor",
+    "ReelController",
+    "reel_controller",
 ]
