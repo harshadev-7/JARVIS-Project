@@ -61,24 +61,33 @@ class ReelController:
         input_videos = workspace_manager.list_input_videos()
         input_audio = workspace_manager.list_input_audio()
         bg_audio = input_audio[0] if input_audio else None
+        discovery_report = None
 
         if not input_videos:
-            # Step 5a: Autonomous Media Discovery from authorized open repositories
+            # Step 5a: Autonomous Universal Media Discovery across configured providers
             from video_editor.media_discovery import media_discovery_engine
-            report = await media_discovery_engine.discover_and_acquire(subject or clean_cmd)
+            discovery_report = await media_discovery_engine.discover_and_acquire(clean_cmd or subject)
 
-            if report.is_copyright_restricted:
-                return report.restriction_message
+            if discovery_report.is_copyright_restricted:
+                return discovery_report.restriction_message
 
             # Re-scan media/input/ for newly downloaded footage
             input_videos = workspace_manager.list_input_videos()
 
         if not input_videos:
+            diag_lines = []
+            if discovery_report and discovery_report.diagnostics:
+                for d in discovery_report.diagnostics:
+                    diag_lines.append(f"  • **{d.get('code', 'INFO')}:** [{d.get('provider')}] {d.get('message')}")
+            diag_str = "\n".join(diag_lines) if diag_lines else "  • No matching footage in public domain/authorized repositories."
+
             return (
                 f"❌ **Footage Acquisition Notice:** No video footage found in `media/input/` and automated discovery "
-                f"could not obtain authorized public domain footage for '{subject or clean_cmd}'.\n\n"
-                f"JARVIS strictly complies with content policies and will never output fake color canvases or text placeholders.\n"
-                f"**Please place your video clips (`.mp4`, `.mov`, `.mkv`) into `media/input/`** and rerun your command."
+                f"could not obtain authorized footage for '{subject or clean_cmd}'.\n\n"
+                f"**Diagnostics & Provider Status:**\n{diag_str}\n\n"
+                f"**Next Steps:**\n"
+                f"1. To use high-resolution stock video, add `PEXELS_API_KEY` or `PIXABAY_API_KEY` to `.env`.\n"
+                f"2. Or place your video clips (`.mp4`, `.mov`, `.mkv`) into `media/input/` and rerun your command."
             )
 
         # Multi-clip real footage editing pipeline!
@@ -88,53 +97,56 @@ class ReelController:
             input_videos=input_videos,
             bg_audio=bg_audio,
             custom_title=custom_text or subject,
+            discovery_report=discovery_report,
         )
 
     def parse_structured_prompt(self, prompt: str) -> Dict[str, Any]:
-        """Extract topic, style, duration, format, custom text, and effects from rich prompts."""
+        """Extract clean subject, category, style, duration, format, custom text, and effects from rich prompts."""
+        from video_editor.media_discovery import SubjectAnalyzer
+
         # 1. Custom text / headline (e.g. Add text: "THE GOAT NEVER FALLS")
         custom_text = None
         text_m = re.search(r'(?:add\s+text|text|caption|headline|title):\s*["\']?([^"\'\n\r]+)["\']?', prompt, re.IGNORECASE)
         if text_m:
             custom_text = text_m.group(1).strip()
 
-        # 2. Duration (e.g. Duration: 30 seconds, 30s)
+        # 2. Duration (e.g. Duration: 30 seconds, 30s, 10 sec)
         dur = 30.0
-        dur_m = re.search(r'(?:duration:\s*)?(\d+(?:\.\d+)?)\s*(?:s|sec|seconds)?\b', prompt, re.IGNORECASE)
+        dur_m = re.search(r'(?:duration:\s*(\d+(?:\.\d+)?)\s*(?:s|sec|seconds)?\b|\b(\d+(?:\.\d+)?)\s*(?:s|sec|seconds)\b)', prompt, re.IGNORECASE)
         if dur_m:
             try:
-                val = float(dur_m.group(1))
-                if 5.0 <= val <= 300.0:
+                val_str = dur_m.group(1) or dur_m.group(2)
+                val = float(val_str)
+                if 1.0 <= val <= 300.0:
                     dur = val
             except Exception:
                 pass
 
-        # 3. Style preset
+        # 3. Clean subject extraction
+        subject = SubjectAnalyzer.extract_clean_subject(prompt)
+        category = SubjectAnalyzer.classify_category(subject)
+
+        # 4. Style preset determination
         style = "reels"
         lower = prompt.lower()
-        if "dragon ball" in lower or "goku" in lower or "anime" in lower:
+        if "dragon ball" in lower or "goku" in lower or "anime" in lower or category == "anime_animation":
             style = "anime"
         elif "velocity" in lower or "speed ramp" in lower:
             style = "velocity"
-        elif "cinematic" in lower:
+        elif "cinematic" in lower or category in ["nature_landscapes", "travel_tourism", "space_science"]:
             style = "cinematic"
-        elif "car" in lower:
+        elif "car" in lower or "automotive" in lower or category == "cars_automotive":
             style = "car"
+        elif "game" in lower or "gaming" in lower or category == "gaming_gameplay":
+            style = "velocity"
         elif "luxury" in lower:
             style = "luxury"
         elif "short" in lower:
             style = "shorts"
 
-        # 4. Core Subject / Topic extraction
-        first_line = prompt.strip().splitlines()[0]
-        subject = re.sub(r'(?i)^/reel\s*', '', first_line).strip()
-        subject = re.sub(r'(?i)^(?:create|make|edit|generate)\s+(?:a|an)\s+', '', subject).strip()
-        subject = re.sub(r'[\.:].*$', '', subject).strip()
-        if not subject or len(subject) < 3:
-            subject = "Dragon Ball Goku Ultra Instinct" if "goku" in lower else f"{style.title()} Highlights"
-
         return {
             "subject": subject,
+            "category": category,
             "style": style,
             "duration_sec": dur,
             "custom_text": custom_text,
@@ -196,8 +208,9 @@ class ReelController:
         input_videos: List[Path],
         bg_audio: Optional[Path],
         custom_title: Optional[str] = None,
+        discovery_report: Optional[Any] = None,
     ) -> str:
-        """Execute autonomous editing on user-supplied raw footage."""
+        """Execute autonomous editing on raw footage."""
         log.info(f"Initiating footage editing pipeline for style '{style}' ({target_duration}s)...")
 
         # 1. Analyze all footage
@@ -240,7 +253,22 @@ class ReelController:
                 qc_passed=result.qc_passed,
             )
 
-        return result.message
+        msg = result.message
+        extras = []
+        if discovery_report:
+            if discovery_report.fallback_explanation:
+                extras.append(f"\nℹ️ **Footage Notice:** {discovery_report.fallback_explanation}")
+            if discovery_report.camera_angles_found:
+                angles_str = ", ".join(discovery_report.camera_angles_found)
+                extras.append(f"\n🎥 **Camera Angles Selected:** {angles_str}")
+            if discovery_report.items:
+                sources_str = ", ".join(set(f"{itm.source_platform} ({itm.license_type})" for itm in discovery_report.items))
+                extras.append(f"\n📜 **Authorized Sources:** {sources_str}")
+
+        if extras:
+            msg = msg + "\n" + "\n".join(extras)
+
+        return msg
 
     async def _execute_autonomous_pipeline(
         self,

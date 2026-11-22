@@ -54,17 +54,36 @@ class RenderingEngine:
         self._hw_accel_available = self._detect_hw_accel()
 
     def _detect_hw_accel(self) -> Optional[str]:
-        """Detect available hardware accelerated H.264 encoders."""
+        """Detect and actively verify available hardware accelerated H.264 encoders."""
         try:
             cmd = [self.ffmpeg_bin, "-encoders"]
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
             output = res.stdout or ""
             if "h264_nvenc" in output:
-                log.info("Detected NVIDIA NVENC hardware acceleration.")
-                return "h264_nvenc"
-            elif "h264_qsv" in output:
-                log.info("Detected Intel QuickSync hardware acceleration.")
-                return "h264_qsv"
+                # Actively verify that NVIDIA NVENC initializes successfully with installed driver
+                test_cmd = [
+                    self.ffmpeg_bin, "-y",
+                    "-f", "lavfi", "-i", "nullsrc=s=64x64:d=0.1",
+                    "-c:v", "h264_nvenc",
+                    "-f", "null", "-"
+                ]
+                test_res = subprocess.run(test_cmd, capture_output=True, timeout=5)
+                if test_res.returncode == 0:
+                    log.info("Verified active NVIDIA NVENC hardware acceleration operational.")
+                    return "h264_nvenc"
+                else:
+                    log.warning("h264_nvenc supported by FFmpeg binary but driver initialization failed (e.g. missing nvcuda.dll). Safely using CPU encoding.")
+            if "h264_qsv" in output:
+                test_cmd = [
+                    self.ffmpeg_bin, "-y",
+                    "-f", "lavfi", "-i", "nullsrc=s=64x64:d=0.1",
+                    "-c:v", "h264_qsv",
+                    "-f", "null", "-"
+                ]
+                test_res = subprocess.run(test_cmd, capture_output=True, timeout=5)
+                if test_res.returncode == 0:
+                    log.info("Verified active Intel QuickSync hardware acceleration operational.")
+                    return "h264_qsv"
         except Exception as e:
             log.debug(f"Hardware acceleration probe skipped: {e}")
         return None

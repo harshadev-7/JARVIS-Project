@@ -31,7 +31,19 @@ from video_editor.rendering_engine import RenderingEngine, RenderOutputResult, r
 from video_editor.project_memory import ProjectMemory, project_memory
 from video_editor.adaptive_editor import AdaptiveEditor, adaptive_editor
 from video_editor.reel_controller import ReelController, reel_controller
-from video_editor.media_discovery import MediaDiscoveryEngine, DiscoveredMediaItem, MediaCollectionReport, media_discovery_engine
+from video_editor.media_discovery import (
+    MediaDiscoveryEngine,
+    DiscoveredMediaItem,
+    MediaCollectionReport,
+    SubjectAnalyzer,
+    CameraAngleClassifier,
+    FootageProvider,
+    WikimediaCommonsProvider,
+    InternetArchiveProvider,
+    PexelsProvider,
+    PixabayProvider,
+    media_discovery_engine,
+)
 from video_editor.capcut_engine import CapCutEngine, CapCutStyleProfile, capcut_engine
 from video_editor.multitrack_timeline import TimelineClip, MultiTrackTimeline, create_multitrack_timeline
 
@@ -98,6 +110,13 @@ __all__ = [
     "MediaDiscoveryEngine",
     "DiscoveredMediaItem",
     "MediaCollectionReport",
+    "SubjectAnalyzer",
+    "CameraAngleClassifier",
+    "FootageProvider",
+    "WikimediaCommonsProvider",
+    "InternetArchiveProvider",
+    "PexelsProvider",
+    "PixabayProvider",
     "media_discovery_engine",
     "CapCutEngine",
     "CapCutStyleProfile",
