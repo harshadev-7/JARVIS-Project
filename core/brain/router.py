@@ -1,7 +1,8 @@
 """J.A.R.V.I.S. Intent Classifier & Task Router.
 
-Analyzes user input, classifies intent, and determines whether
-a specialized autonomous agent or local Transformer model should handle the request.
+Analyzes user input, classifies intent into 16 discrete categories,
+and determines whether a specialized autonomous agent, deterministic solver,
+creative engine, or local Transformer model should handle the request.
 """
 
 from __future__ import annotations
@@ -13,21 +14,40 @@ from typing import Any, Dict, List, Optional
 
 
 class IntentType(str, Enum):
+    # 16 Canonical Intents Required by Directive
+    GENERAL_QUESTION = "general_question"
+    KNOWLEDGE_QUESTION = "knowledge_question"
+    MATHEMATICAL_PROBLEM = "mathematical_problem"
+    LOGICAL_REASONING = "logical_reasoning"
+    PROBLEM_SOLVING = "problem_solving"
+    CREATIVE_GENERATION = "creative_generation"
+    IMAGE_PROMPT_GENERATION = "image_prompt_generation"
+    VIDEO_PROMPT_GENERATION = "video_prompt_generation"
+    CODE_GENERATION = "code_generation"
+    INTERNET_RESEARCH = "internet_research"
+    FILE_OPERATION = "file_operation"
+    DESKTOP_AUTOMATION = "desktop_automation"
+    VIDEO_EDITING = "video_editing"
+    DEVICE_OPERATION = "device_operation"
+    CONVERSATIONAL_INTERACTION = "conversational_interaction"
+    MULTI_STEP_TASK = "multi_step_task"
+
+    # Subsystem-specific & backward-compatible aliases
     GREETING = "greeting"
     STATUS_DIAGNOSTICS = "status_diagnostics"
-    REASONING = "reasoning"
-    RESEARCH = "research"
-    PROGRAMMING = "programming"
-    MATH = "math"
-    DEVICE_CONTROL = "device_control"
-    COMPUTER_AUTOMATION = "computer_automation"
+    REASONING = "logical_reasoning"
+    RESEARCH = "internet_research"
+    PROGRAMMING = "code_generation"
+    MATH = "mathematical_problem"
+    DEVICE_CONTROL = "device_operation"
+    COMPUTER_AUTOMATION = "desktop_automation"
     IDENTITY = "identity"
     MEMORY_STORE = "memory_store"
     MEMORY_QUERY = "memory_query"
-    VIDEO_EDITING = "video_editing"
+    VIDEO_PATTERNS = "video_editing"
     COMPUTER_VISION = "computer_vision"
     CYBERSECURITY = "cybersecurity"
-    GENERAL_CONVERSATION = "general_conversation"
+    GENERAL_CONVERSATION = "conversational_interaction"
 
 
 @dataclass
@@ -44,37 +64,78 @@ class RoutingDecision:
 class IntentRouter:
     """Deterministic, high-speed offline intent classifier and agent selector."""
 
-    # Keywords and regex patterns for rapid offline routing
-    GREETING_PATTERNS = [
-        r"\b(hello|hi|hey|good morning|good evening|good afternoon|greetings)\b"
+    # 1. Image Prompt Generation Patterns
+    IMAGE_PROMPT_PATTERNS = [
+        r"\b(?:generate|create|make|write|give me|design)?\s*(?:an?\s+)?(?:image\s+prompt|prompt\s+for\s+(?:an?\s+)?image|prompt\s+for\s+ai\s+to\s+create\s+(?:an?\s+)?image|prompt\s+to\s+create\s+(?:an?\s+)?image)\b",
+        r"\b(?:image\s+prompt\s+for|prompt\s+for\s+(?:an?\s+)?image\s+of)\b",
     ]
-    STATUS_PATTERNS = [
-        r"\b(status|diagnostics|system check|health|cpu usage|ram usage|how are you)\b"
+
+    # 2. Video Prompt Generation Patterns
+    VIDEO_PROMPT_PATTERNS = [
+        r"\b(?:generate|create|make|write|give me)?\s*(?:a\s+)?(?:video\s+prompt|prompt\s+for\s+(?:a\s+)?video|cinematic\s+prompt\s+for\s+video)\b",
     ]
+
+    # 3. Creative Generation Patterns
+    CREATIVE_PATTERNS = [
+        r"\b(?:create\s+a\s+concept|concept\s+for\s+a\s+sci-fi|sci-fi\s+short\s+film|short\s+film\s+concept)\b",
+        r"\b(?:story\s+idea|write\s+a\s+story|write\s+a\s+script|film\s+treatment|movie\s+concept)\b",
+        r"\b(?:social\s+media\s+caption|create\s+a\s+caption|logo\s+concept|character\s+description)\b",
+    ]
+
+    # 4. Logical Reasoning & Riddles
+    LOGICAL_REASONING_PATTERNS = [
+        r"\b(?:if\s+\d+\s+machines?\s+produce|machines?\s+produce\s+\d+\s+products?)\b",
+        r"\b(?:bat\s+and\s+(?:a\s+)?ball|costs?\s+\$?\d+(?:\.\d+)?\s+more\s+than)\b",
+        r"\b(?:riddle|puzzle|logic\s+problem|word\s+problem)\b",
+        r"\b(?:two\s+workers|pipes?\s+fill|tank\s+fills|train\s+passes|trains?\s+crossing)\b",
+        r"\b(?:all\s+but\s+\d+|half\s+my\s+age|handshakes?|shake\s+hands)\b",
+        r"\b(?:clock\s+shows|angle\s+between\s+(?:the\s+)?hands?)\b",
+    ]
+
+    # 5. Mathematical Problems
     MATH_PATTERNS = [
-        r"\b(calculate|compute|math|solve|multiply|divide|add|subtract)\b",
-        r"\d+\s*[\+\-\*\/\^]\s*\d+",
+        r"\b(?:calculate|compute|math|multiply|divide|add|subtract)\b",
+        r"\b\d+(?:\.\d+)?\s*[\+\-\*\/\^]\s*\d+(?:\.\d+)?\b",
+        r"\bwhat\s+is\s+\d+(?:\.\d+)?\s*[\+\-\*\/\^]\s*\d+\b",
+        r"\b(?:solve\s+for\s+x|algebraic|integral\s+of|derivative\s+of)\b",
     ]
+
+    # 6. Code Generation
     CODE_PATTERNS = [
-        r"\b(code|python|syntax|debug|function|class|script|def |import )\b",
-        r"[{};\[\]]",
+        r"\b(?:write\s+a\s+python|python\s+function|write\s+a\s+function|check\s+whether\s+a\s+string\s+is\s+a\s+palindrome|palindrome)\b",
+        r"\b(?:code|syntax|debug|function|class|script|def |import )\b",
     ]
+
+    # 7. Document Summarization
+    DOCUMENT_SUMMARY_PATTERNS = [
+        r"(?i)^(?:summarize\s+(?:this|the\s+following|the\s+document|the\s+text)|document\s+summary)",
+    ]
+
+    # 8. General Questions (Factual)
+    GENERAL_QUESTION_PATTERNS = [
+        r"\b(?:what\s+is\s+the\s+capital\s+of|who\s+wrote|what\s+is\s+the\s+speed\s+of\s+light)\b",
+    ]
+
+    # 9. Internet Research (Strictly explicit or requiring live 2025/2026 data)
+    RESEARCH_PATTERNS = [
+        r"^/research\b",
+        r"\b(?:search\s+(?:the\s+)?web|search\s+online|look\s+up\s+online|google\s+this|find\s+online)\b",
+        r"\b(?:latest\s+developments?\s+in|recent\s+(?:developments?|advancements?|news|releases?)|upcoming\s+releases?)\b",
+        r"\b(?:electric\s+vehicle\s+releases|latest\s+quantum\s+computing)\b",
+    ]
+
+    # Device & Automation Patterns
     DEVICE_PATTERNS = [
         r"\b(device|phone|tablet|pair|connect to device|devices near|nearby device)\b"
     ]
     AUTOMATION_PATTERNS = [
         r"\b(open|launch|close|terminate|kill process|start app|notepad|calc|explorer)\b"
     ]
-    RESEARCH_PATTERNS = [
-        r"\b(research|search|look up|find online|who is|what is the history of)\b"
+    STATUS_PATTERNS = [
+        r"\b(status|diagnostics|system check|health|cpu usage|ram usage|how are you)\b"
     ]
-    REASONING_PATTERNS = [
-        r"\b(solve problem|reason|plan mission|step by step|how should i approach)\b",
-        r"\b(explain the difference|difference between|compare|relationship between)\b",
-        r"\b(how many|how much|how long|what is the angle|angle between|clock shows|speed of|distance between)\b",
-        r"\b(all but \d+|half my age|simple interest|compound interest|handshakes?|shake hands)\b",
-        r"\b(riddle|puzzle|logic problem|word problem|reasoning)\b",
-        r"\b(two workers|pipes? fill|tank fills|train passes|trains? crossing)\b",
+    GREETING_PATTERNS = [
+        r"\b(hello|hi|hey|good morning|good evening|good afternoon|greetings)\b"
     ]
     IDENTITY_PATTERNS = [
         r"\b(who are you|what are you|your name|what can you do|capabilities|jarvis)\b"
@@ -83,43 +144,23 @@ class IntentRouter:
         r"\b(video\s+edit|edit\s+video|trim\s+video|cut\s+video|merge\s+video|concatenate\s+video)\b",
         r"\b(make\s+a\s+reel|create\s+short|vertical\s+video|sync\s+to\s+beat|highlight\s+reel)\b",
         r"\b(burn\s+subtitles|add\s+subtitles|export\s+video|video\s+timeline)\b",
-        r"\b(play|open|show|watch|listen\s+to|start)\s+(?:that\s+|the\s+|this\s+|my\s+)?(?:video|reel|audio|media|clip|track|short)\b",
-        r"\b(play|open|watch)\s+(?:that|this|it)\b",
-        r"^(?:play|open|launch)\s+(?:video|reel|clip)$",
     ]
     VISION_PATTERNS = [
         r"\b(image\s+classif|classif\w*\s+image|inspect\s+image|analyze\s+image|view\s+image)\b",
         r"\b(ocr|extract\s+text|read\s+text\s+from|scan\s+text|detect\s+objects|bounding\s+box)\b",
-        r"\b(visual\s+search|reverse\s+image|scene\s+understand|image\s+quality|smart\s+crop|auto\s+frame)\b",
     ]
     CYBERSECURITY_PATTERNS = [
         r"\b(cwe-\d+|cve-\d+|vulnerability|cybersecurity|hardening|owasp|sql injection|xss|csrf|ssrf|zero trust|dnssec|tls 1\.3|syn flood|privilege escalation)\b",
-        r"\b(mitigate|remediation|security checklist|firewall rules|linux hardening|windows hardening)\b",
     ]
     MEMORY_QUERY_PATTERNS = [
         r"\b(what do you know about me|who am i|who i am|what is my name|what's my name)\b",
-        r"\b(?:now\s+)?say\s+my\s+name\b",
         r"\b(?:tell|recall|repeat)\s+(?:me\s+)?my\s+name\b",
-        r"\b(?:tell|what do you know|know)\s+(?:me\s+)?about\s+me\b",
-        r"\btell\s+about\s+me\b",
-        r"\babout\s+me\b",
         r"\bmy\s+profile\b",
-        r"\bmy\s+background\b",
-        r"\bwhat\s+about\s+me\b",
-        r"\b(?:did|when did)\s+i\s+tell\s+you\b",
-        r"\bi\s+did(?:n't)?\s+tell\s+you\b",
-        r"\b(?:do you know|remember)\s+my\s+name\b",
-        r"\b(what (?:programming )?language|what (?:exam|examination)|what am i preparing for|what are my interests)\b",
-        r"\b(do you remember|what do you remember|our previous conversation|tell me what you remember|past discussion)\b",
     ]
     MEMORY_STORE_PATTERNS = [
         r"\bmy name is\s+[A-Za-z]+\b",
         r"\bcall me\s+[A-Za-z]+\b",
         r"\bi am\s+[A-Z][a-z]+\b",
-        r"\bi am (?:a|an)\s+[^.]+\b",
-        r"\binterested in\s+[^.]+\b",
-        r"\bpreparing for\s+[^.]+\b",
-        r"\bremember (?:that\s+)?",
     ]
 
     def route(self, user_message: str, history: Optional[List[dict]] = None) -> RoutingDecision:
@@ -127,7 +168,120 @@ class IntentRouter:
         text = user_message.strip()
         lower = text.lower()
 
-        # 1. System Diagnostics / Telemetry
+        # Multi-turn Context Evaluation:
+        # Check if previous turn set a pending creative prompt or requested entity
+        if history and len(history) >= 2:
+            prev_turn = history[-1]
+            prev_content = prev_turn.get("content", "").lower()
+            if "what would you like the ai to create" in prev_content or "what would you like to create" in prev_content:
+                # User is replying with the subject of a prompt
+                return RoutingDecision(
+                    intent=IntentType.IMAGE_PROMPT_GENERATION,
+                    confidence=0.95,
+                    needs_agent=False,
+                    agent_name="CreativeEngine",
+                    extracted_query=text,
+                )
+
+        # 1. Document Summarization
+        if any(re.search(p, lower) for p in self.DOCUMENT_SUMMARY_PATTERNS) or (
+            lower.startswith("summarize") and len(text.split()) > 10
+        ):
+            return RoutingDecision(
+                intent=IntentType.PROBLEM_SOLVING,
+                confidence=0.92,
+                needs_agent=False,
+                agent_name="DeductiveSolver",
+                extracted_query=text,
+                metadata={"action": "summarize"},
+            )
+
+        # 2. Image Prompt Generation
+        if any(re.search(p, lower) for p in self.IMAGE_PROMPT_PATTERNS) or (
+            "prompt" in lower and any(w in lower for w in ["image", "picture", "photo", "drawing", "illustration"])
+        ):
+            return RoutingDecision(
+                intent=IntentType.IMAGE_PROMPT_GENERATION,
+                confidence=0.95,
+                needs_agent=False,
+                agent_name="CreativeEngine",
+                extracted_query=text,
+            )
+
+        # 3. Video Prompt Generation
+        if any(re.search(p, lower) for p in self.VIDEO_PROMPT_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.VIDEO_PROMPT_GENERATION,
+                confidence=0.95,
+                needs_agent=False,
+                agent_name="CreativeEngine",
+                extracted_query=text,
+            )
+
+        # 4. Creative Generation (Stories, Concepts, Scripts, Captions)
+        if any(re.search(p, lower) for p in self.CREATIVE_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.CREATIVE_GENERATION,
+                confidence=0.92,
+                needs_agent=False,
+                agent_name="CreativeEngine",
+                extracted_query=text,
+            )
+
+        # 5. Logical Reasoning & Riddles (e.g. 5 machines, bat and ball)
+        if any(re.search(p, lower) for p in self.LOGICAL_REASONING_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.LOGICAL_REASONING,
+                confidence=0.95,
+                needs_agent=False,
+                agent_name="DeductiveSolver",
+                extracted_query=text,
+            )
+
+        # 6. Mathematical Problems
+        if any(re.search(p, lower) for p in self.MATH_PATTERNS) and any(c.isdigit() for c in lower):
+            return RoutingDecision(
+                intent=IntentType.MATHEMATICAL_PROBLEM,
+                confidence=0.95,
+                needs_agent=False,
+                agent_name="DeductiveSolver",
+                extracted_query=text,
+            )
+
+        # 7. Code Generation & Analysis
+        if any(re.search(p, lower) for p in self.CODE_PATTERNS) and any(
+            kw in lower for kw in ["python", "function", "palindrome", "def ", "class ", "import ", "error", "debug"]
+        ):
+            return RoutingDecision(
+                intent=IntentType.CODE_GENERATION,
+                confidence=0.92,
+                needs_agent=False,
+                agent_name="DeductiveSolver",
+                extracted_query=text,
+            )
+
+        # 8. General Factual Questions (e.g. Capital of France)
+        if any(re.search(p, lower) for p in self.GENERAL_QUESTION_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.GENERAL_QUESTION,
+                confidence=0.92,
+                needs_agent=False,
+                agent_name="DeductiveSolver",
+                extracted_query=text,
+            )
+
+        # 9. Explicit or Live Internet Research
+        if any(re.search(p, lower) for p in self.RESEARCH_PATTERNS):
+            query = re.sub(r"^/research\s*", "", text).strip()
+            return RoutingDecision(
+                intent=IntentType.INTERNET_RESEARCH,
+                confidence=0.90,
+                needs_agent=True,
+                agent_name="ResearchAgent",
+                extracted_query=query or text,
+            )
+
+        # 10. System Diagnostics / Telemetry
         if any(re.search(p, lower) for p in self.STATUS_PATTERNS):
             return RoutingDecision(
                 intent=IntentType.STATUS_DIAGNOSTICS,
@@ -137,51 +291,29 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 2. Mathematical Calculations
-        if any(re.search(p, lower) for p in self.MATH_PATTERNS) and any(c.isdigit() for c in lower):
-            return RoutingDecision(
-                intent=IntentType.MATH,
-                confidence=0.92,
-                needs_agent=True,
-                agent_name="MathematicalAgent",
-                extracted_query=text,
-            )
-
-        # 3. Device Mesh / Phone / Tablet
+        # 11. Device Mesh / Phone / Tablet
         if any(re.search(p, lower) for p in self.DEVICE_PATTERNS):
             return RoutingDecision(
-                intent=IntentType.DEVICE_CONTROL,
+                intent=IntentType.DEVICE_OPERATION,
                 confidence=0.90,
                 needs_agent=True,
                 agent_name="DeviceManagementAgent",
                 extracted_query=text,
             )
 
-        # 4. Programming & Code Analysis
-        if any(re.search(p, lower) for p in self.CODE_PATTERNS) and any(
-            kw in lower for kw in ["def ", "class ", "import ", "error", "debug", "syntax"]
-        ):
-            return RoutingDecision(
-                intent=IntentType.PROGRAMMING,
-                confidence=0.88,
-                needs_agent=True,
-                agent_name="ProgrammingAgent",
-                extracted_query=text,
-            )
-
-        # 5. Safe Computer Automation
+        # 12. Safe Computer Automation
         if any(re.search(p, lower) for p in self.AUTOMATION_PATTERNS) and any(
             app in lower for app in ["notepad", "calc", "calculator", "vscode", "code", "browser", "app"]
         ):
             return RoutingDecision(
-                intent=IntentType.COMPUTER_AUTOMATION,
+                intent=IntentType.DESKTOP_AUTOMATION,
                 confidence=0.85,
                 needs_agent=True,
                 agent_name="ComputerAutomationAgent",
                 extracted_query=text,
             )
 
-        # 5b. Video Editing Automation
+        # 13. Video Editing Automation
         if lower.startswith("/video") or lower.startswith("/reel") or lower.startswith("/short") or any(
             re.search(p, lower) for p in self.VIDEO_PATTERNS
         ):
@@ -194,7 +326,7 @@ class IntentRouter:
                 extracted_query=query or text,
             )
 
-        # 5c. Computer Vision & Visual Intelligence
+        # 14. Computer Vision
         if lower.startswith("/vision") or lower.startswith("/ocr") or lower.startswith("/image") or any(
             re.search(p, lower) for p in self.VISION_PATTERNS
         ):
@@ -207,7 +339,7 @@ class IntentRouter:
                 extracted_query=query or text,
             )
 
-        # 5d. Cybersecurity Intelligence & Defensive Advisory
+        # 15. Cybersecurity
         if lower.startswith("/secinfo") or lower.startswith("/cwe") or any(
             re.search(p, lower) for p in self.CYBERSECURITY_PATTERNS
         ):
@@ -220,45 +352,7 @@ class IntentRouter:
                 extracted_query=query or text,
             )
 
-        # 6. Deep Research Query
-        if lower.startswith("/research") or (
-            any(re.search(p, lower) for p in self.RESEARCH_PATTERNS) and len(text.split()) > 3
-        ):
-            query = text.replace("/research", "").strip()
-            return RoutingDecision(
-                intent=IntentType.RESEARCH,
-                confidence=0.85,
-                needs_agent=True,
-                agent_name="ResearchAgent",
-                extracted_query=query,
-            )
-
-        # 7. Multi-step Reasoning / Problem Solving
-        if lower.startswith("/solve") or any(re.search(p, lower) for p in self.REASONING_PATTERNS):
-            query = text.replace("/solve", "").strip()
-            return RoutingDecision(
-                intent=IntentType.REASONING,
-                confidence=0.90,
-                needs_agent=True,
-                agent_name="ProblemSolvingAgent",
-                extracted_query=query,
-            )
-
-        # 7b. Direct Match against Offline Learned Pattern Schemas
-        try:
-            from core.planner.learned_pattern_engine import learned_pattern_engine
-            if learned_pattern_engine.match_and_solve(text) is not None:
-                return RoutingDecision(
-                    intent=IntentType.REASONING,
-                    confidence=0.95,
-                    needs_agent=True,
-                    agent_name="ProblemSolvingAgent",
-                    extracted_query=text,
-                )
-        except Exception:
-            pass
-
-        # 8. Memory & Profile Query
+        # 16. Memory Query
         if any(re.search(p, lower) for p in self.MEMORY_QUERY_PATTERNS):
             return RoutingDecision(
                 intent=IntentType.MEMORY_QUERY,
@@ -268,7 +362,7 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 9. Memory & User Profile Statement / Update
+        # 17. Memory Store
         if any(re.search(p, lower) for p in self.MEMORY_STORE_PATTERNS):
             return RoutingDecision(
                 intent=IntentType.MEMORY_STORE,
@@ -278,7 +372,7 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 10. Greetings
+        # 18. Greetings
         if any(re.search(p, lower) for p in self.GREETING_PATTERNS) and len(text.split()) <= 4:
             return RoutingDecision(
                 intent=IntentType.GREETING,
@@ -288,7 +382,7 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 11. Identity & Capabilities
+        # 19. Identity
         if any(re.search(p, lower) for p in self.IDENTITY_PATTERNS):
             return RoutingDecision(
                 intent=IntentType.IDENTITY,
@@ -298,12 +392,12 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 12. General Conversation -> Handled by Custom Local Transformer Neural Model
+        # 20. General Conversational Interaction
         return RoutingDecision(
-            intent=IntentType.GENERAL_CONVERSATION,
+            intent=IntentType.CONVERSATIONAL_INTERACTION,
             confidence=0.80,
             needs_agent=False,
-            agent_name="CustomTransformer",
+            agent_name="ConversationalCortex",
             extracted_query=text,
         )
 

@@ -180,11 +180,18 @@ class ReasoningEngine:
             execution_output="All 10 stages completed successfully with zero unhandled constraints.",
         )
 
-        # 10. Solve and Synthesize Results via Cognitive Engine
+        # 10. Solve and Synthesize Results via Deductive & Cognitive Engines
+        from core.planner.deductive_solver import deductive_solver
         from core.planner.cognitive_solver import cognitive_solver
-        solution_data = cognitive_solver.solve(problem_description)
-        detailed_solution = solution_data.get("solution", "")
-        solution_summary = solution_data.get("summary", "")
+
+        deductive_sol = deductive_solver.solve_problem(problem_description)
+        if deductive_sol and deductive_sol.get("solution"):
+            detailed_solution = deductive_sol["solution"]
+            solution_summary = deductive_sol.get("answer", "")
+        else:
+            solution_data = cognitive_solver.solve(problem_description)
+            detailed_solution = solution_data.get("solution", "")
+            solution_summary = solution_data.get("summary", "")
 
         final_report = (
             f"**JARVIS Problem-Solving Assessment & Synthesis**\n\n"

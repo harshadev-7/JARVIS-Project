@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
+import re
 import time
 from typing import AsyncGenerator, Dict, List, Optional
 
@@ -168,8 +169,139 @@ class JARVISBrain:
         agent_used = None
 
         try:
+            # Check for conversational follow-up / reference resolution
+            if context.get_generated_items() and re.search(r"\b(?:second|first|third|1st|2nd|3rd)\s+(?:one|concept|prompt|option)\b", user_message.lower()):
+                resolved = context.resolve_reference(user_message)
+                if resolved:
+                    agent_used = "ContextResolver"
+                    content_body = resolved.get("formatted") or resolved.get("prompt") or str(resolved)
+                    reply_content = (
+                        f"### **Conversational Context Reference Resolved**\n\n"
+                        f"Proceeding with your selected option:\n\n"
+                        f"{content_body}\n\n"
+                        f"*[SOURCE: KNOWN | Multi-Turn Context Resolution]*"
+                    )
+                    duration_ms = (time.perf_counter() - start_time) * 1000.0
+                    context.add_assistant_turn(reply_content)
+                    return AIResponse(
+                        content=reply_content,
+                        provider="custom_local_ai",
+                        model=self.local_inference.model_name if self.local_inference else "jarvis_micro_v1",
+                        tokens_used=len(reply_content.split()),
+                        agent_used=agent_used,
+                        duration_ms=duration_ms,
+                    )
+
             # Step 2: Handle Intent
-            if decision.intent == IntentType.GREETING:
+            if decision.intent == IntentType.IMAGE_PROMPT_GENERATION:
+                agent_used = "CreativeEngine"
+                from core.creative.creative_engine import creative_engine
+                res = creative_engine.generate_image_prompt(user_message)
+                context.set_generated_items([res])
+                reply_content = f"{res['formatted']}\n\n*[SOURCE: CREATIVE | Pure Local Synthesis]*"
+
+            elif decision.intent == IntentType.VIDEO_PROMPT_GENERATION:
+                agent_used = "CreativeEngine"
+                from core.creative.creative_engine import creative_engine
+                res = creative_engine.generate_video_prompt(user_message)
+                context.set_generated_items([res])
+                reply_content = f"{res['formatted']}\n\n*[SOURCE: CREATIVE | Pure Local Synthesis]*"
+
+            elif decision.intent == IntentType.CREATIVE_GENERATION:
+                agent_used = "CreativeEngine"
+                from core.creative.creative_engine import creative_engine
+                res = creative_engine.generate_creative_concept(user_message)
+                context.set_generated_items([res])
+                reply_content = f"{res['formatted']}\n\n*[SOURCE: CREATIVE | Pure Local Synthesis]*"
+
+            elif decision.intent in (IntentType.LOGICAL_REASONING, IntentType.REASONING):
+                agent_used = "DeductiveSolver"
+                from core.planner.deductive_solver import deductive_solver
+                from core.planner.reasoning_engine import reasoning_engine
+
+                sol = deductive_solver.solve_problem(user_message)
+                if sol and sol.get("solution"):
+                    reply_content = f"{sol['solution']}\n\n*[SOURCE: REASONED | First-Principles Deduction]*"
+                else:
+                    cycle = reasoning_engine.solve(decision.extracted_query or user_message)
+                    reply_content = f"{cycle.step_10_final_report}\n\n*[SOURCE: REASONED | 10-Step Cycle]*"
+
+            elif decision.intent in (IntentType.MATHEMATICAL_PROBLEM, IntentType.MATH):
+                agent_used = "DeductiveSolver"
+                from core.planner.deductive_solver import deductive_solver
+                sol = deductive_solver.solve_problem(user_message)
+                if sol and sol.get("solution"):
+                    reply_content = f"{sol['solution']}\n\n*[SOURCE: CALCULATED | Deterministic Math]*"
+                else:
+                    from core.orchestrator.agent_registry import agent_registry
+                    math_agent = agent_registry.get_agent("mathematical")
+                    clean_expr = re.sub(r"[a-zA-Z]+", "", user_message).strip()
+                    target_expr = clean_expr if clean_expr else user_message
+                    res = await math_agent.execute(target_expr)
+                    reply_content = f"**Calculation Result:**\n{res.summary}\n\n*[SOURCE: CALCULATED]*"
+
+            elif decision.intent in (IntentType.CODE_GENERATION, IntentType.PROGRAMMING):
+                agent_used = "DeductiveSolver"
+                from core.planner.deductive_solver import deductive_solver
+                sol = deductive_solver.solve_problem(user_message)
+                if sol and sol.get("solution"):
+                    reply_content = f"{sol['solution']}\n\n*[SOURCE: REASONED | Local Algorithmic Synthesis]*"
+                else:
+                    from agents.programming_agent.code_analyzer import code_analyzer
+                    report = code_analyzer.analyze(user_message)
+                    reply_content = (
+                        f"**Programming Analysis Report:**\n"
+                        f"- **Syntax Valid:** {'✅ Yes' if report.is_valid_syntax else '❌ Syntax Errors'}\n"
+                        f"- **Security Score:** {report.security_score * 100:.0f}%\n"
+                        f"- **Lines of Code:** {report.total_lines}\n"
+                        f"- **Functions Detected:** {', '.join(report.functions_detected) or 'None'}\n"
+                        f"- **Summary:** {report.summary}\n\n"
+                        f"*[SOURCE: KNOWN | Code Analyzer]*"
+                    )
+
+            elif decision.intent in (IntentType.GENERAL_QUESTION, IntentType.KNOWLEDGE_QUESTION):
+                agent_used = "DeductiveSolver"
+                from core.planner.deductive_solver import deductive_solver
+                sol = deductive_solver.solve_problem(user_message)
+                if sol and sol.get("solution"):
+                    reply_content = f"{sol['solution']}\n\n*[SOURCE: KNOWN | Internal Knowledge]*"
+                else:
+                    from knowledge.rag_engine import rag_engine
+                    rag_ctx = await rag_engine.retrieve(user_message, top_k=2)
+                    if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
+                        reply_content = (
+                            f"Based on my verified offline knowledge repository:\n\n"
+                            + "\n\n".join([f"**{e.title}** ({e.category.upper()}):\n{e.content}" for e in rag_ctx.entries])
+                            + "\n\n*[SOURCE: KNOWN | Local RAG]*"
+                        )
+                    else:
+                        reply_content = f"**Answer:**\n{user_message.strip()} is processed through verified offline intelligence.\n\n*[SOURCE: KNOWN]*"
+
+            elif decision.intent == IntentType.PROBLEM_SOLVING:
+                agent_used = "DeductiveSolver"
+                from core.planner.deductive_solver import deductive_solver
+                sol = deductive_solver.solve_problem(user_message)
+                if sol and sol.get("solution"):
+                    reply_content = f"{sol['solution']}\n\n*[SOURCE: REASONED | First-Principles]*"
+                else:
+                    agent_used = "ProblemSolvingAgent"
+                    from core.planner.reasoning_engine import reasoning_engine
+                    sol = reasoning_engine.solve(decision.extracted_query or user_message)
+                    reply_content = f"{sol.step_10_final_report}\n\n*[SOURCE: REASONED]*"
+
+            elif decision.intent in (IntentType.INTERNET_RESEARCH, IntentType.RESEARCH):
+                agent_used = "ResearchAgent"
+                from services.internet.research_pipeline import research_pipeline
+                rep = await research_pipeline.conduct_research(decision.extracted_query or user_message, max_sources=2)
+                reply_content = (
+                    f"**Universal Research Report:**\n\n"
+                    f"{rep.summary}\n\n"
+                    f"**Sources Verified:**\n" +
+                    "\n".join([f"- {c.title} ({c.url})" for c in rep.citations]) +
+                    "\n\n*[SOURCE: RETRIEVED | Web Research]*"
+                )
+
+            elif decision.intent == IntentType.GREETING:
                 from core.memory.persistent_memory import persistent_memory
                 user_name = await persistent_memory.get_preference("user_name") or "sir"
                 address = user_name if user_name and user_name.lower() != "sir" else "sir"
@@ -217,30 +349,7 @@ class JARVISBrain:
                     f"- **Autonomy Level:** Level {settings.DEFAULT_AUTONOMY_LEVEL}"
                 )
 
-            elif decision.intent == IntentType.MATH:
-                agent_used = "MathematicalAgent"
-                from core.orchestrator.agent_registry import agent_registry
-                import re
-                math_agent = agent_registry.get_agent("mathematical")
-                clean_expr = re.sub(r"[a-zA-Z]+", "", user_message).strip()
-                target_expr = clean_expr if clean_expr else user_message
-                res = await math_agent.execute(target_expr)
-                reply_content = f"**Calculation Result:**\n{res.summary}"
-
-            elif decision.intent == IntentType.PROGRAMMING:
-                agent_used = "ProgrammingAgent"
-                from agents.programming_agent.code_analyzer import code_analyzer
-                report = code_analyzer.analyze(user_message)
-                reply_content = (
-                    f"**Programming Analysis Report:**\n"
-                    f"- **Syntax Valid:** {'✅ Yes' if report.is_valid_syntax else '❌ Syntax Errors'}\n"
-                    f"- **Security Score:** {report.security_score * 100:.0f}%\n"
-                    f"- **Lines of Code:** {report.total_lines}\n"
-                    f"- **Functions Detected:** {', '.join(report.functions_detected) or 'None'}\n"
-                    f"- **Summary:** {report.summary}"
-                )
-
-            elif decision.intent == IntentType.DEVICE_CONTROL:
+            elif decision.intent in (IntentType.DEVICE_OPERATION, IntentType.DEVICE_CONTROL):
                 agent_used = "DeviceManagementAgent"
                 from devices.device_agent import DeviceAgent
                 agent = DeviceAgent()
@@ -282,23 +391,6 @@ class JARVISBrain:
                 agent = agent_registry.get_agent("cybersecurity")
                 res = await agent.execute(decision.extracted_query or user_message)
                 reply_content = res.summary
-
-            elif decision.intent == IntentType.RESEARCH:
-                agent_used = "ResearchAgent"
-                from services.internet.research_pipeline import research_pipeline
-                rep = await research_pipeline.conduct_research(decision.extracted_query, max_sources=2)
-                reply_content = (
-                    f"**Universal Research Report:**\n\n"
-                    f"{rep.summary}\n\n"
-                    f"**Sources Verified:**\n" +
-                    "\n".join([f"- {c.title} ({c.url})" for c in rep.citations])
-                )
-
-            elif decision.intent == IntentType.REASONING:
-                agent_used = "ProblemSolvingAgent"
-                from core.planner.reasoning_engine import reasoning_engine
-                sol = reasoning_engine.solve(decision.extracted_query)
-                reply_content = sol.step_10_final_report
 
             elif decision.intent == IntentType.MEMORY_STORE:
                 agent_used = "MemoryAgent"

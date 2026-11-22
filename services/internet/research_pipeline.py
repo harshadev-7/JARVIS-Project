@@ -41,6 +41,9 @@ class ResearchReport(BaseModel):
 class ResearchPipeline:
     """End-to-end autonomous research coordinator."""
 
+    def __init__(self):
+        self.research_call_count = 0
+
     async def conduct_research(
         self,
         topic: str,
@@ -50,7 +53,8 @@ class ResearchPipeline:
         """
         Execute full research workflow for a given topic.
         """
-        log.info(f"ResearchPipeline initiating research on: '{topic}'")
+        self.research_call_count += 1
+        log.info(f"ResearchPipeline initiating research on: '{topic}' (Call #{self.research_call_count})")
 
         # 0. Connectivity Check
         try:

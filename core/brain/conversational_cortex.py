@@ -296,8 +296,9 @@ class ConversationalCortex:
                 "- **Backend Engineering:** FastAPI, Django, Flask, AsyncIO."
             )
 
-        # 10. Broad Informational Inquiries & Autonomous Live Web Perception
-        # Match questions asking for summaries, updates, definitions, explanations, or overviews
+        # 10. Broad Informational Inquiries
+        from core.brain.decision_policy import decision_policy
+
         topic_match = re.search(
             r"(?i)^(?:give me\s+|tell me\s+|tell\s+|show me\s+)?(?:a\s+)?(?:summary\s+(?:about|of)|new\s+updates?\s+(?:about|of|on|in)|updates?\s+(?:about|of|on|in)|what\s+is\s+(?:an?\s+)?|what\s+are\s+|who\s+is\s+|why\s+is\s+|explain\s+|about\s+|how\s+does\s+|definition\s+of\s+|overview\s+of\s+)(.+)$",
             q_clean
@@ -308,30 +309,32 @@ class ConversationalCortex:
             if not any(k in raw_topic.lower() for k in ["angle", "clock", "train", "speed", "distance", "sheep", "handshake", "sum of", "discount", "profit"]):
                 if len(raw_topic) >= 2:
                     is_update = bool(re.search(r"\b(update|updates|new|latest|version)\b", q_clean, re.I))
-                    summary = self._quick_web_insight(raw_topic, is_update_query=is_update)
-                    if summary:
-                        header = f"Latest Updates & Release Details for **{raw_topic}**" if is_update else f"Verified Technical Summary: **{raw_topic}**"
-                        return (
-                            f"### **{header}**\n\n"
-                            f"{summary}\n\n"
-                            f"Would you like to explore deeper into any specific aspect of {raw_topic}, {address}?"
-                        )
+                    # Only search if policy confirms it requires live internet research
+                    if decision_policy.should_search_internet(q_clean):
+                        summary = self._quick_web_insight(raw_topic, is_update_query=is_update)
+                        if summary:
+                            header = f"Latest Updates & Release Details for **{raw_topic}**" if is_update else f"Verified Technical Summary: **{raw_topic}**"
+                            return (
+                                f"### **{header}**\n\n"
+                                f"{summary}\n\n"
+                                f"Would you like to explore deeper into any specific aspect of {raw_topic}, {address}?"
+                            )
 
         # 10b. Guard against running web perception on imperative action commands
         if re.match(r"(?i)^(play|open|launch|run|close|stop|pause|render|edit|cut|trim|start|watch|show)\b", q_clean):
             return None
 
-        # 11. Context-Aware Assistance Fallback (Clean, constructive, and conversational!)
+        # 11. Context-Aware Assistance Fallback (Clean, constructive, and conversational without unprompted web scraping!)
         cleaned_topic = q_clean.rstrip("?.")
         if len(cleaned_topic) > 3:
-            # Attempt general web perception before final conversational response
-            summary = self._quick_web_insight(cleaned_topic)
-            if summary:
-                return (
-                    f"### **Information on {cleaned_topic}:**\n\n"
-                    f"{summary}\n\n"
-                    f"How can I assist you further with this, {address}?"
-                )
+            if decision_policy.should_search_internet(q_clean):
+                summary = self._quick_web_insight(cleaned_topic)
+                if summary:
+                    return (
+                        f"### **Information on {cleaned_topic}:**\n\n"
+                        f"{summary}\n\n"
+                        f"How can I assist you further with this, {address}?"
+                    )
 
             return (
                 f"I hear you, {address}. Regarding **{cleaned_topic}**:\n\n"
