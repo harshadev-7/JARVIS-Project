@@ -19,7 +19,7 @@ from pathlib import Path
 import time
 from typing import Any, Dict, Optional
 
-from .inference import InferenceResponse, LocalModelInference
+from .inference_core import InferenceResponse, LocalModelInference
 
 
 class BaseLocalModelAdapter(ABC):

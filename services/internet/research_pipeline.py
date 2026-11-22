@@ -80,15 +80,21 @@ class ResearchPipeline:
             if sr.snippet:
                 key_findings.append(f"{sr.title}: {sr.snippet}")
 
+        findings_bullets = "\n".join([f"• **{sr.title}**: {sr.snippet}" for sr in search_results if sr.snippet])
+        extracted_summary = "\n\n".join(extracted_texts[:2]) if extracted_texts else ""
+
         summary = (
-            f"Research on '{topic}' compiled from {len(citations)} primary sources. "
-            f"Key consensus points identified: {'; '.join([sr.title for sr in search_results])}."
+            f"**Comprehensive Research Briefing: {topic}**\n\n"
+            f"Synthesized from **{len(citations)} verified sources**:\n\n"
+            f"{findings_bullets}"
         )
+        if extracted_summary:
+            summary += f"\n\n**Extracted Intelligence Details:**\n{extracted_summary[:800]}..."
 
         knowledge_id = None
         indexed = False
 
-        # 4. Index in JARVIS Long-Term Knowledge Base
+        # 4. Index in JARVIS Long-Term Knowledge Base & Autonomous Learning
         if auto_index_memory and key_findings:
             try:
                 full_knowledge_text = f"Summary: {summary}\n\nFindings:\n" + "\n".join(key_findings)
@@ -102,6 +108,18 @@ class ResearchPipeline:
                 log.info(f"Research findings indexed in memory with ID: {knowledge_id}")
             except Exception as e:
                 log.warning(f"Could not automatically index research in memory: {e}")
+
+            # Step 5: Automatically extract and register problem patterns in LearnedPatternEngine
+            try:
+                from core.planner.learned_pattern_engine import learned_pattern_engine
+                snippets = [sr.snippet for sr in search_results if sr.snippet]
+                learned_pattern_engine.learn_from_research(
+                    query=topic,
+                    solution_text=summary,
+                    research_snippets=snippets,
+                )
+            except Exception as e:
+                log.warning(f"Could not automatically learn pattern from research: {e}")
 
         return ResearchReport(
             topic=topic,

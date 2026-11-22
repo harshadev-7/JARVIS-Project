@@ -14,6 +14,7 @@ import secrets
 from enum import Enum
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
+from collections import defaultdict
 from pydantic import BaseModel, Field
 
 from core.logger import log
@@ -61,6 +62,8 @@ class DeviceRegistry:
     def __init__(self):
         self._devices: Dict[str, DeviceRecord] = {}
         self._pairing_codes: Dict[str, Dict[str, Any]] = {}  # code -> {created_at, ttl}
+        self._pending_tasks: Dict[str, List[RemoteTaskPayload]] = defaultdict(list)
+        self._completed_tasks: Dict[str, Dict[str, Any]] = {}
 
     def generate_pairing_code(self) -> str:
         """Create a 6-digit one-time cryptographic pairing PIN."""
@@ -147,8 +150,25 @@ class DeviceRegistry:
             action=action,
             parameters=parameters or {},
         )
+        self._pending_tasks[device.device_id].append(payload)
         log.info(f"Dispatched remote task [{payload.task_id}] to '{device.name}' ({device.device_id}): {action}")
         return payload
+
+    def get_pending_tasks(self, device_id: str, clear: bool = True) -> List[RemoteTaskPayload]:
+        """Fetch pending tasks queued for a specific device."""
+        tasks = self._pending_tasks.get(device_id, [])
+        if clear:
+            self._pending_tasks[device_id] = []
+        return tasks
+
+    def complete_task(self, task_id: str, result_data: Optional[Dict[str, Any]] = None) -> bool:
+        """Mark a remote task as successfully completed."""
+        self._completed_tasks[task_id] = {
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "result": result_data or {},
+        }
+        log.info(f"Remote task [{task_id}] reported complete.")
+        return True
 
     def disconnect_device(self, device_id: str) -> bool:
         """Revoke device registration."""

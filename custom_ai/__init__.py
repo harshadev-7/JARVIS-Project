@@ -16,10 +16,25 @@ This package contains the complete local, CPU-first neural architecture:
 The ``__all__`` list defines the supported names exposed by this package.
 """
 
-from .attention import MaskedMultiHeadAttention
+from .training.run_training import main as run_training
+from .quick_train import quick_train
+try:
+    from .attention import MaskedMultiHeadAttention
+except Exception:
+    # Defer heavy imports; components that need torch will raise when used
+    MaskedMultiHeadAttention = None
+
 from .dataset import TextDataset, TinyTextDataset, clean_text, load_corpus_file, split_train_val
 from .generation import TextGenerator
-from .inference import (
+from .sampling import (
+    apply_repetition_penalty,
+    apply_temperature,
+    apply_top_k,
+    apply_top_p,
+    sample_next_token,
+)
+from .checkpoint_utils import save_checkpoint, load_checkpoint
+from .inference_core import (
     CheckpointError,
     CheckpointNotFoundError,
     InferenceResponse,
@@ -34,29 +49,40 @@ from .pretrained_adapter import (
     PretrainedLocalModelAdapter,
 )
 from .tokenizer import TextTokenizer
+from .bpe_tokenizer import BPETokenizer
 from .trainer import LanguageModelTrainer, TinyLanguageModelTrainer, detect_system_resources
 from .transformer import FeedForward, TransformerDecoderBlock
 
+def run_inference(*args, **kwargs):
+    from .inference_cli.run_inference import main as _main
+    return _main(*args, **kwargs)
+
 __all__ = [
-    "BaseLocalModelAdapter",
-    "CheckpointError",
-    "CheckpointNotFoundError",
-    "CustomTransformerAdapter",
-    "DecoderLayer",
+    "run_training",
+    "run_inference",
+    "quick_train",
+    "LocalModelInference",
+    "LanguageModelTrainer",
+    "TinyLanguageModelTrainer",
+    "TextTokenizer",
+    "BPETokenizer",
     "DecoderOnlyTransformer",
+    "MaskedMultiHeadAttention",
+    "save_checkpoint",
+    "load_checkpoint",
+    "BaseLocalModelAdapter",
+    "CustomTransformerAdapter",
+    "PretrainedLocalModelAdapter",
+    "DecoderLayer",
     "FeedForward",
     "InferenceResponse",
+    "CheckpointError",
+    "CheckpointNotFoundError",
     "InvalidCheckpointError",
-    "LanguageModelTrainer",
-    "LocalModelInference",
     "LocalModelRegistry",
-    "MaskedMultiHeadAttention",
-    "PretrainedLocalModelAdapter",
     "TextDataset",
-    "TextGenerator",
-    "TextTokenizer",
-    "TinyLanguageModelTrainer",
     "TinyTextDataset",
+    "TextGenerator",
     "TransformerDecoderBlock",
     "build_causal_mask",
     "clean_text",

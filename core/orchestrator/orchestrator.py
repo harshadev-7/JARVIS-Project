@@ -62,6 +62,7 @@ class MultiAgentOrchestrator:
         objective: str,
         required_agents: Optional[List[str]] = None,
         context: Optional[Dict[str, Any]] = None,
+        autonomy_level: Optional[int] = None,
     ) -> OrchestrationMission:
         """
         Coordinate multiple specialized agents to solve a complex objective.
@@ -70,7 +71,7 @@ class MultiAgentOrchestrator:
         # Determine agent roster
         agent_keys = required_agents or self._determine_agent_roster(objective)
 
-        active_level = settings.DEFAULT_AUTONOMY_LEVEL
+        active_level = autonomy_level if autonomy_level is not None else settings.DEFAULT_AUTONOMY_LEVEL
         blocked = []
         for key in agent_keys:
             agent = agent_registry.get_agent(key)

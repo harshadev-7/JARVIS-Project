@@ -78,6 +78,7 @@ async def test_orchestrator_multi_agent_mission():
     mission = await orchestrator.execute_mission(
         objective="Build an AI dashboard website",
         required_agents=["programming", "task_planning", "cybersecurity"],
+        autonomy_level=4,
     )
     assert mission.all_succeeded is True
     assert len(mission.results) == 3

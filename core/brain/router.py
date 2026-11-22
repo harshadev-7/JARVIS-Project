@@ -22,6 +22,9 @@ class IntentType(str, Enum):
     DEVICE_CONTROL = "device_control"
     COMPUTER_AUTOMATION = "computer_automation"
     IDENTITY = "identity"
+    MEMORY_STORE = "memory_store"
+    MEMORY_QUERY = "memory_query"
+    VIDEO_EDITING = "video_editing"
     GENERAL_CONVERSATION = "general_conversation"
 
 
@@ -64,10 +67,45 @@ class IntentRouter:
         r"\b(research|search|look up|find online|who is|what is the history of)\b"
     ]
     REASONING_PATTERNS = [
-        r"\b(solve problem|reason|plan mission|step by step|how should i approach)\b"
+        r"\b(solve problem|reason|plan mission|step by step|how should i approach)\b",
+        r"\b(explain the difference|difference between|compare|relationship between)\b",
+        r"\b(how many|how much|how long|what is the angle|angle between|clock shows|speed of|distance between)\b",
+        r"\b(all but \d+|half my age|simple interest|compound interest|handshakes?|shake hands)\b",
+        r"\b(riddle|puzzle|logic problem|word problem|reasoning)\b",
+        r"\b(two workers|pipes? fill|tank fills|train passes|trains? crossing)\b",
     ]
     IDENTITY_PATTERNS = [
         r"\b(who are you|what are you|your name|what can you do|capabilities|jarvis)\b"
+    ]
+    VIDEO_PATTERNS = [
+        r"\b(video\s+edit|edit\s+video|trim\s+video|cut\s+video|merge\s+video|concatenate\s+video)\b",
+        r"\b(make\s+a\s+reel|create\s+short|vertical\s+video|sync\s+to\s+beat|highlight\s+reel)\b",
+        r"\b(burn\s+subtitles|add\s+subtitles|export\s+video|video\s+timeline)\b",
+    ]
+    MEMORY_QUERY_PATTERNS = [
+        r"\b(what do you know about me|who am i|who i am|what is my name|what's my name)\b",
+        r"\b(?:now\s+)?say\s+my\s+name\b",
+        r"\b(?:tell|recall|repeat)\s+(?:me\s+)?my\s+name\b",
+        r"\b(?:tell|what do you know|know)\s+(?:me\s+)?about\s+me\b",
+        r"\btell\s+about\s+me\b",
+        r"\babout\s+me\b",
+        r"\bmy\s+profile\b",
+        r"\bmy\s+background\b",
+        r"\bwhat\s+about\s+me\b",
+        r"\b(?:did|when did)\s+i\s+tell\s+you\b",
+        r"\bi\s+did(?:n't)?\s+tell\s+you\b",
+        r"\b(?:do you know|remember)\s+my\s+name\b",
+        r"\b(what (?:programming )?language|what (?:exam|examination)|what am i preparing for|what are my interests)\b",
+        r"\b(do you remember|what do you remember|our previous conversation|tell me what you remember|past discussion)\b",
+    ]
+    MEMORY_STORE_PATTERNS = [
+        r"\bmy name is\s+[A-Za-z]+\b",
+        r"\bcall me\s+[A-Za-z]+\b",
+        r"\bi am\s+[A-Z][a-z]+\b",
+        r"\bi am (?:a|an)\s+[^.]+\b",
+        r"\binterested in\s+[^.]+\b",
+        r"\bpreparing for\s+[^.]+\b",
+        r"\bremember (?:that\s+)?",
     ]
 
     def route(self, user_message: str, history: Optional[List[dict]] = None) -> RoutingDecision:
@@ -129,6 +167,19 @@ class IntentRouter:
                 extracted_query=text,
             )
 
+        # 5b. Video Editing Automation
+        if lower.startswith("/video") or lower.startswith("/reel") or lower.startswith("/short") or any(
+            re.search(p, lower) for p in self.VIDEO_PATTERNS
+        ):
+            query = re.sub(r"^/(video|reel|short)\s*", "", text).strip()
+            return RoutingDecision(
+                intent=IntentType.VIDEO_EDITING,
+                confidence=0.92,
+                needs_agent=True,
+                agent_name="VideoEditingAgent",
+                extracted_query=query or text,
+            )
+
         # 6. Deep Research Query
         if lower.startswith("/research") or (
             any(re.search(p, lower) for p in self.RESEARCH_PATTERNS) and len(text.split()) > 3
@@ -153,17 +204,51 @@ class IntentRouter:
                 extracted_query=query,
             )
 
-        # 8. Greetings
+        # 7b. Direct Match against Offline Learned Pattern Schemas
+        try:
+            from core.planner.learned_pattern_engine import learned_pattern_engine
+            if learned_pattern_engine.match_and_solve(text) is not None:
+                return RoutingDecision(
+                    intent=IntentType.REASONING,
+                    confidence=0.95,
+                    needs_agent=True,
+                    agent_name="ProblemSolvingAgent",
+                    extracted_query=text,
+                )
+        except Exception:
+            pass
+
+        # 8. Memory & Profile Query
+        if any(re.search(p, lower) for p in self.MEMORY_QUERY_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.MEMORY_QUERY,
+                confidence=0.95,
+                needs_agent=False,
+                agent_name="MemoryAgent",
+                extracted_query=text,
+            )
+
+        # 9. Memory & User Profile Statement / Update
+        if any(re.search(p, lower) for p in self.MEMORY_STORE_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.MEMORY_STORE,
+                confidence=0.95,
+                needs_agent=False,
+                agent_name="MemoryAgent",
+                extracted_query=text,
+            )
+
+        # 10. Greetings
         if any(re.search(p, lower) for p in self.GREETING_PATTERNS) and len(text.split()) <= 4:
             return RoutingDecision(
                 intent=IntentType.GREETING,
-                confidence=0.95,
+                confidence=0.90,
                 needs_agent=False,
                 agent_name=None,
                 extracted_query=text,
             )
 
-        # 9. Identity & Capabilities
+        # 11. Identity & Capabilities
         if any(re.search(p, lower) for p in self.IDENTITY_PATTERNS):
             return RoutingDecision(
                 intent=IntentType.IDENTITY,
@@ -173,7 +258,7 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 10. General Conversation -> Handled by Custom Local Transformer Neural Model
+        # 12. General Conversation -> Handled by Custom Local Transformer Neural Model
         return RoutingDecision(
             intent=IntentType.GENERAL_CONVERSATION,
             confidence=0.80,

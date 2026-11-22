@@ -116,6 +116,19 @@ def test_api_pairing_and_dispatch_flow(client):
     )
     assert disp_res.status_code == 200
     assert disp_res.json()["action"] == "display_notification"
+    task_id = disp_res.json()["task_id"]
+
+    # 4b. Fetch pending tasks for device
+    tasks_res = client.get(f"/devices/{dev_id}/tasks?clear=false")
+    assert tasks_res.status_code == 200
+    tasks = tasks_res.json()
+    assert len(tasks) == 1
+    assert tasks[0]["task_id"] == task_id
+
+    # 4c. Report task completed
+    comp_res = client.post(f"/devices/{dev_id}/tasks/{task_id}/complete", json={"status": "displayed"})
+    assert comp_res.status_code == 200
+    assert comp_res.json()["status"] == "acknowledged"
 
     # 5. Disconnect
     del_res = client.delete(f"/devices/{dev_id}")

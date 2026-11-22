@@ -254,7 +254,7 @@ class LanguageModelTrainer:
         if not target_path.exists():
             raise FileNotFoundError(f"Checkpoint not found: {path}")
 
-        checkpoint = torch.load(target_path, map_location=self.device)
+        checkpoint = torch.load(target_path, map_location=self.device, weights_only=False)
 
         target_model = model or self.model
         target_model.load_state_dict(checkpoint["model_state"])

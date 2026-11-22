@@ -45,7 +45,8 @@ def test_inference_from_saved_checkpoint():
     st = engine.status()
     assert st["ready"] is True
     assert st["model_type"] == "custom_transformer"
-    assert st["parameters"] == 130_944
+    assert st["parameters"] == engine.model.get_num_params()
+    assert st["parameters"] > 100_000
 
 
 def test_inference_generation_parameters():

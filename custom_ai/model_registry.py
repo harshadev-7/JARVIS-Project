@@ -1,6 +1,4 @@
-"""J.A.R.V.I.S. Local Model Registry (Phase 6).
-
-Coordinates model checkpoints, active model selection, and registry state:
+"""J.A.R.V.I.S. Local Model Registry (Phase 6). This module coordinates model checkpoints, active model selection, and registry state.
 - Auto-discovers checkpoints in checkpoints/local_models
 - Safely handles corrupt or missing checkpoints with custom error boundaries
 - Provides unified access to LocalModelInference
@@ -15,13 +13,14 @@ from typing import Any, Dict, List, Optional
 
 import torch
 
-from .inference import (
-    CheckpointError,
-    CheckpointNotFoundError,
-    InferenceResponse,
-    InvalidCheckpointError,
-    LocalModelInference,
-)
+# Import inference symbols from the module (avoid package name clash)
+from . import inference_core as _inf_mod
+CheckpointError = _inf_mod.CheckpointError
+CheckpointNotFoundError = _inf_mod.CheckpointNotFoundError
+InferenceResponse = _inf_mod.InferenceResponse
+InvalidCheckpointError = _inf_mod.InvalidCheckpointError
+LocalModelInference = _inf_mod.LocalModelInference
+
 from .model import DecoderOnlyTransformer
 from .tokenizer import TextTokenizer
 
@@ -42,12 +41,7 @@ class LocalModelRegistry:
             return []
         return sorted(self.checkpoint_dir.glob("*.pt"))
 
-    def register_model(
-        self,
-        name: str,
-        model: torch.nn.Module,
-        tokenizer: TextTokenizer,
-    ) -> Dict[str, Any]:
+    def register_model(self, name: str, model: torch.nn.Module, tokenizer: TextTokenizer) -> Dict[str, Any]:
         """Register an in-memory model and tokenizer."""
         inference = LocalModelInference(model=model, tokenizer=tokenizer, model_name=name)
         self._models[name] = {
@@ -66,12 +60,7 @@ class LocalModelRegistry:
             self._default_name = name
         return self._models[name]
 
-    def register_from_checkpoint(
-        self,
-        name: str,
-        checkpoint_path: str | Path,
-        vocab_path: Optional[str | Path] = None,
-    ) -> Dict[str, Any]:
+    def register_from_checkpoint(self, name: str, checkpoint_path: str | Path, vocab_path: Optional[str | Path] = None) -> Dict[str, Any]:
         """Safely load and register a model from a saved checkpoint."""
         try:
             inference = LocalModelInference(
@@ -118,14 +107,11 @@ class LocalModelRegistry:
     def _checkpoint_path_for(self, model_name: str) -> Path:
         return self.checkpoint_dir / f"{model_name}.pt"
 
-    def save_current_model(
-        self, model_name: str, metadata: Optional[Dict[str, Any]] = None
-    ) -> str:
+    def save_current_model(self, model_name: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         """Save registered model state to checkpoint file."""
         entry = self._models.get(model_name)
         if entry is None or "model" not in entry:
             raise ValueError(f"Unknown or uninitialized local model '{model_name}'")
-
         path = self._checkpoint_path_for(model_name)
         payload = {
             "model_state": entry["model"].state_dict(),
@@ -144,37 +130,24 @@ class LocalModelRegistry:
         entry["status"] = "trained"
         return str(path)
 
-    def load_model(
-        self, model_name: str, checkpoint_path: Optional[str] = None
-    ) -> torch.nn.Module:
+    def load_model(self, model_name: str, checkpoint_path: Optional[str] = None) -> torch.nn.Module:
         """Load checkpoint weights into a registered model."""
         entry = self._models.get(model_name)
         if entry is None:
             raise ValueError(f"Unknown local model '{model_name}'")
-
         path = checkpoint_path or entry.get("checkpoint") or self._checkpoint_path_for(model_name)
         if not Path(path).exists():
             return entry["model"]
-
-        payload = torch.load(path, map_location="cpu")
+        payload = torch.load(path, map_location="cpu", weights_only=False)
         entry["model"].load_state_dict(payload["model_state"])
         entry["status"] = "ready"
         entry["checkpoint"] = str(path)
         return entry["model"]
 
-    def generate(
-        self,
-        prompt: str,
-        model_name: Optional[str] = None,
-        max_new_tokens: int = 8,
-        temperature: float = 0.8,
-        top_k: int = 20,
-    ) -> str:
+    def generate(self, prompt: str, model_name: Optional[str] = None, max_new_tokens: int = 8, temperature: float = 0.8, top_k: int = 20) -> str:
         """Generate string output using the specified or default model."""
         engine = self.get_inference_engine(model_name)
-        return engine.generate(
-            prompt, max_new_tokens=max_new_tokens, temperature=temperature, top_k=top_k
-        )
+        return engine.generate(prompt, max_new_tokens=max_new_tokens, temperature=temperature, top_k=top_k)
 
     def status(self) -> Dict[str, Dict[str, Any]]:
         """Return comprehensive status for all models in the registry."""
@@ -191,6 +164,5 @@ class LocalModelRegistry:
                 "is_default": name == self._default_name,
             }
         return report
-
 
 __all__ = ["LocalModelRegistry"]

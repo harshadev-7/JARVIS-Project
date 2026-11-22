@@ -114,6 +114,47 @@ class SearchClient:
         except Exception as e:
             log.warning(f"DuckDuckGo search error: {e}")
 
+        # 2. Fallback: Query DuckDuckGo HTML Lite for rich organic search results
+        if not results:
+            try:
+                from bs4 import BeautifulSoup
+                import urllib.parse
+
+                html_url = "https://html.duckduckgo.com/html/"
+                data = {"q": query}
+                async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=headers) as client:
+                    resp = await client.post(html_url, data=data)
+                    if resp.status_code == 200:
+                        soup = BeautifulSoup(resp.text, "html.parser")
+                        for item in soup.select(".result"):
+                            title_a = item.select_one(".result__a") or item.select_one(".result__title a")
+                            snippet_td = item.select_one(".result__snippet")
+                            if title_a:
+                                title_text = title_a.get_text(separator=" ", strip=True)
+                                title_text = re.sub(r"\s+", " ", title_text).strip()
+                                raw_link = title_a.get("href", "")
+                                real_link = raw_link
+                                if "uddg=" in raw_link:
+                                    parsed = urllib.parse.parse_qs(urllib.parse.urlparse(raw_link).query)
+                                    if "uddg" in parsed:
+                                        real_link = parsed["uddg"][0]
+
+                                snip_text = snippet_td.get_text(separator=" ", strip=True) if snippet_td else ""
+                                snip_text = re.sub(r"\s+", " ", snip_text).strip()
+                                if title_text and not real_link.startswith("/"):
+                                    results.append(
+                                        SearchResult(
+                                            title=title_text,
+                                            url=real_link,
+                                            snippet=snip_text,
+                                            source="duckduckgo_html",
+                                        )
+                                    )
+                            if len(results) >= max_results:
+                                break
+            except Exception as e:
+                log.warning(f"DuckDuckGo HTML search error: {e}")
+
         # If zero direct instant answers, return structured research query placeholder
         if not results:
             results.append(

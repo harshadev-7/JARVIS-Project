@@ -255,13 +255,74 @@ class VideoEditingAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="VideoEditingAgent",
-            role="Video project timeline assembly, cutlist generation, 9:16 vertical video framing, and rendering specs.",
-            capabilities=["timeline_generation", "cutlist", "vertical_framing"],
+            role="AI-powered video editing, timeline assembly, 9:16 Shorts/Reels framing, subtitles, and beat sync.",
+            capabilities=[
+                "timeline_generation",
+                "cutlist",
+                "vertical_framing",
+                "scene_detection",
+                "beat_sync",
+                "subtitles",
+                "export_rendering",
+            ],
             required_autonomy_level=3,
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentTaskResult:
-        specs = {"aspect_ratio": "9:16", "resolution": "1080x1920", "fps": 30, "target": "Shorts/Reels"}
+        from video_editor.video_editing_agent import video_editing_coordinator
+        from video_editor.effects import SocialFormattingConfig
+        from video_editor.exporter import ExportQuality
+
+        ctx = context or {}
+        file_path = ctx.get("file_path") or ctx.get("video_path")
+        
+        # Check if task specifies an explicit video path
+        if not file_path:
+            import re
+            m = re.search(r"['\"]?([A-Za-z]:\\[^'\"\n]+|\b[\w\-_\.]+\.(?:mp4|mov|avi|mkv|webm))\b", task)
+            if m:
+                file_path = m.group(1)
+
+        if file_path:
+            try:
+                meta = video_editing_coordinator.inspect_media(file_path)
+                # If reel / short requested
+                lower = task.lower()
+                if any(w in lower for w in ["reel", "short", "vertical", "9:16", "tiktok"]):
+                    res = video_editing_coordinator.create_short_or_reel(
+                        video_path=file_path,
+                        watermark_text=ctx.get("watermark", "JARVIS AI"),
+                        blur_background=True,
+                        quality=ExportQuality.SOCIAL_720P,
+                    )
+                    return AgentTaskResult(
+                        agent_name=self.name,
+                        task_id="vid-reel-01",
+                        success=res.success,
+                        data={"output": res.output_path, "metadata": meta.__dict__},
+                        summary=f"Created 9:16 vertical reel configuration for {meta.filename}. Output: {res.output_path}",
+                    )
+                elif "highlight" in lower:
+                    res = video_editing_coordinator.auto_highlight_reel(file_path)
+                    return AgentTaskResult(
+                        agent_name=self.name,
+                        task_id="vid-hl-01",
+                        success=res.success,
+                        data={"output": res.output_path, "metadata": meta.__dict__},
+                        summary=f"Synthesized highlight reel from {meta.filename}. Output: {res.output_path}",
+                    )
+                else:
+                    return AgentTaskResult(
+                        agent_name=self.name,
+                        task_id="vid-inspect-01",
+                        success=True,
+                        data={"metadata": meta.__dict__},
+                        summary=f"Inspected media: {meta.filename} ({meta.width}x{meta.height}, {meta.duration_sec}s, {meta.fps} FPS, {meta.aspect_ratio}).",
+                    )
+            except Exception as e:
+                log.warning(f"Video agent execution encountered error: {e}")
+
+        specs = {"aspect_ratio": "9:16", "resolution": "1080x1920", "fps": 30, "target": "Shorts/Reels", "engine": "Phase19_VideoEditor"}
         return AgentTaskResult(
             agent_name=self.name,
             task_id="vid-01",
@@ -420,6 +481,10 @@ class AgentRegistry:
             }
             for k, a in self._agents.items()
         ]
+
+    def list_agents(self) -> List[BaseAgent]:
+        """Return list of all registered BaseAgent instances."""
+        return list(self._agents.values())
 
 
 agent_registry = AgentRegistry()

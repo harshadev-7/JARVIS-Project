@@ -1,53 +1,47 @@
 # ============================================================
-# JARVIS AI - Phase 1 Requirements
-# Core AI Brain & Conversational Interface
+# JARVIS AI — Requirements (Phase 2: Cleaned & Authoritative)
+# Local-first, offline-capable, zero cloud AI dependencies.
 # ============================================================
 
 # --- Web Framework ---
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 
-# --- AI & LLM ---
-openai==1.55.0                 # GPT-4o / GPT-4o-mini
-google-generativeai==0.8.3     # Gemini (free alternative)
-anthropic==0.39.0              # Claude (optional alternative)
-
-# --- LangChain (agent framework foundation) ---
-langchain==0.3.7
-langchain-openai==0.2.9
-langchain-google-genai==2.0.5
-langchain-community==0.3.7
-
 # --- Data Validation ---
 pydantic==2.10.1
 pydantic-settings==2.6.1
 
-# --- HTTP Client ---
+# --- HTTP Client (async) ---
 httpx==0.28.0
 aiohttp==3.11.6
 
-# --- Database (Phase 1 uses SQLite for simplicity) ---
+# --- Database (SQLite — production store) ---
 sqlalchemy==2.0.36
 aiosqlite==0.20.0              # Async SQLite driver
-greenlet>=3.1.1                # AsyncIO driver requirement for SQLAlchemy
-
-# --- Cache / Session ---
-redis==5.2.0                   # Will use in Phase 3+
+greenlet>=3.1.1                # Required by SQLAlchemy async
 
 # --- Security ---
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.1
 
-# --- Local Custom AI / Transformer ---
+# --- Custom Transformer AI (CPU-first, no cloud) ---
 torch>=2.5.0
+psutil>=5.9.0                  # Hardware metrics (RAM/CPU awareness)
+beautifulsoup4>=4.12.0         # Web content extraction
+lxml>=5.0.0                    # HTML parser (faster than html.parser)
 
 # --- Utilities ---
 rich==13.9.4                   # Beautiful terminal output
 typer==0.13.0                  # CLI interface
-python-multipart==0.0.17      # Form data support
-websockets==14.1
-colorama==0.4.6
+colorama==0.4.6                # Windows terminal color support
+python-multipart==0.0.17       # Form data support
+websockets==14.1               # WebSocket support
+
+# --- Voice (offline) ---
+pyttsx3>=2.90                  # Offline text-to-speech (no cloud)
+# sounddevice>=0.4.6           # Uncomment when building voice input
+# faster-whisper>=1.0.0        # Uncomment for offline STT (Phase 10+)
 
 # --- Logging ---
 loguru==0.7.2
@@ -55,4 +49,19 @@ loguru==0.7.2
 # --- Testing ---
 pytest==8.3.3
 pytest-asyncio==0.24.0
-httpx                          # Already listed above (for TestClient)
+
+# ============================================================
+# REMOVED (violated zero-cloud-AI constraint):
+#   openai, google-generativeai, anthropic
+#   langchain, langchain-openai, langchain-google-genai
+#   langchain-community, langchain-anthropic
+#
+# REMOVED (not used in active code):
+#   redis              — SQLite is the actual store
+#   chromadb           — replaced by TF-IDF vector store
+#   faiss-cpu          — not wired up
+#   sentence-transformers — not needed; TF-IDF handles semantic search
+#   celery             — not wired up
+#
+# See requirements_optional.txt for future/optional packages.
+# ============================================================

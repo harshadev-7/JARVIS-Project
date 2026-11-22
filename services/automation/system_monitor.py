@@ -26,6 +26,11 @@ class SystemMetrics(BaseModel):
     network_bytes_recv_mb: float
     top_processes: List[Dict[str, Any]] = Field(default_factory=list)
 
+    @property
+    def is_healthy(self) -> bool:
+        """Evaluate if CPU and RAM load are within nominal parameters."""
+        return self.cpu_percent < 95.0 and self.ram_percent < 95.0
+
 
 class SystemMonitor:
     """Monitors OS health and hardware performance."""

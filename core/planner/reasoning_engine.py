@@ -42,6 +42,8 @@ class ReasoningCycleResult(BaseModel):
     step_8_execution_plan: TaskPlan
     step_9_verification: VerificationResult
     step_10_final_report: str
+    detailed_solution: Optional[str] = None
+    solution_summary: Optional[str] = None
 
 
 class ReasoningEngine:
@@ -178,13 +180,18 @@ class ReasoningEngine:
             execution_output="All 10 stages completed successfully with zero unhandled constraints.",
         )
 
-        # 10. Report the Results
+        # 10. Solve and Synthesize Results via Cognitive Engine
+        from core.planner.cognitive_solver import cognitive_solver
+        solution_data = cognitive_solver.solve(problem_description)
+        detailed_solution = solution_data.get("solution", "")
+        solution_summary = solution_data.get("summary", "")
+
         final_report = (
-            f"**JARVIS Problem-Solving Assessment**\n\n"
+            f"**JARVIS Problem-Solving Assessment & Synthesis**\n\n"
             f"• **Objective:** {goal_analysis.primary_goal}\n"
             f"• **Selected Strategy:** {selected.name} (Score: {selected.composite_score:.2f})\n"
-            f"• **Authorization Status:** {evaluation.authorization_note}\n"
-            f"• **Action Plan:** {len(task_plan.subtasks)} sequential steps prepared.\n"
+            f"• **Authorization Status:** {evaluation.authorization_note}\n\n"
+            f"{detailed_solution}\n\n"
             f"• **Verification:** {verification.actual_outcome}\n"
         )
         if goal_analysis.missing_information:
@@ -204,6 +211,8 @@ class ReasoningEngine:
             step_8_execution_plan=task_plan,
             step_9_verification=verification,
             step_10_final_report=final_report,
+            detailed_solution=detailed_solution,
+            solution_summary=solution_summary,
         )
 
 

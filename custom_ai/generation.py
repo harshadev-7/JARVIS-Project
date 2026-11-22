@@ -11,8 +11,11 @@ Features:
 
 from __future__ import annotations
 
+from typing import Optional
 import torch
 import torch.nn.functional as F
+
+from .sampling import sample_next_token
 
 
 class TextGenerator:
@@ -31,6 +34,7 @@ class TextGenerator:
         max_new_tokens: int = 32,
         temperature: float = 0.8,
         top_k: int = 20,
+        top_p: Optional[float] = 0.9,
         repetition_penalty: float = 1.1,
     ) -> str:
         """Autoregressively generate text from a string prompt.
@@ -40,6 +44,7 @@ class TextGenerator:
             max_new_tokens: Maximum tokens to generate beyond prompt
             temperature: Sampling temperature (lower = more deterministic, higher = more random)
             top_k: Number of highest-probability tokens to sample from
+            top_p: Nucleus cumulative probability threshold (0.0 to 1.0)
             repetition_penalty: Multiplier penalty (>1.0) applied to previously generated tokens
 
         Returns:
@@ -64,30 +69,17 @@ class TextGenerator:
                 logits = self.model(input_tensor)
 
                 # Extract logits for the final time step
-                next_token_logits = logits[0, -1, :].clone()
+                next_token_logits = logits[0, -1, :]
 
-                # Apply repetition penalty
-                if repetition_penalty != 1.0:
-                    for prev_token in set(generated):
-                        if next_token_logits[prev_token] > 0:
-                            next_token_logits[prev_token] /= repetition_penalty
-                        else:
-                            next_token_logits[prev_token] *= repetition_penalty
-
-                # Apply temperature
-                temp = max(temperature, 1e-5)
-                next_token_logits = next_token_logits / temp
-
-                # Top-k filtering
-                if top_k is not None and top_k > 0:
-                    k_val = min(top_k, next_token_logits.size(-1))
-                    values, indices = torch.topk(next_token_logits, k=k_val)
-                    probs = F.softmax(values, dim=-1)
-                    idx = torch.multinomial(probs, num_samples=1).item()
-                    next_token = int(indices[idx].item())
-                else:
-                    probs = F.softmax(next_token_logits, dim=-1)
-                    next_token = int(torch.multinomial(probs, num_samples=1).item())
+                # Sample next token using composed logit modulations
+                next_token = sample_next_token(
+                    logits=next_token_logits,
+                    temperature=temperature,
+                    top_k=top_k,
+                    top_p=top_p,
+                    repetition_penalty=repetition_penalty,
+                    history=generated,
+                )
 
                 generated.append(next_token)
 

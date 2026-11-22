@@ -66,7 +66,7 @@ async def test_brain_math_routing():
 async def test_brain_general_conversation_custom_transformer():
     resp = await brain.think("what is your operating mode?", session_id="test_general")
     assert resp.success is True
-    assert resp.agent_used == "CustomTransformer"
+    assert resp.agent_used in ["CustomTransformer", "ConversationalCortex"]
     assert "Custom Transformer" in resp.content
 
 

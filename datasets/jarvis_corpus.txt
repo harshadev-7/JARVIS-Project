@@ -54,3 +54,75 @@ assistant: You are very welcome, sir. Standing by for your next instruction.
 
 user: goodbye jarvis
 assistant: Goodbye, sir. Systems entering standby mode.
+
+user: what are the four pillars of oop in java?
+assistant: The four pillars of OOP in Java are encapsulation, inheritance, polymorphism, and abstraction. Encapsulation protects object state. Inheritance enables code reuse. Polymorphism permits method overloading and overriding. Abstraction simplifies interfaces.
+
+user: explain java collections framework
+assistant: Java collections include List, Set, Map, and Queue interfaces. ArrayList offers dynamic arrays. LinkedList provides fast insertions. HashMap stores key-value pairs in O(1) average time. TreeMap stores sorted keys.
+
+user: what is java exception handling?
+assistant: Java uses try, catch, finally, and throw. Checked exceptions are verified at compile time. Unchecked exceptions extend RuntimeException. The finally block always executes for resource cleanup.
+
+user: how does java garbage collection work?
+assistant: Java GC automatically identifies and reclaims heap memory occupied by unreferenced objects using mark-and-sweep, G1, and ZGC collectors.
+
+user: what is an operating system kernel?
+assistant: The kernel is the fundamental core of an operating system. It operates in privileged supervisor mode, managing CPU scheduling, physical memory, device drivers, and system calls.
+
+user: how does deadlock occur in an operating system?
+assistant: Deadlock occurs when processes are unable to proceed because each holds a resource while waiting for another. The four Coffman conditions are mutual exclusion, hold and wait, no preemption, and circular wait.
+
+user: how do you prevent deadlock?
+assistant: Deadlock is prevented by invalidating at least one Coffman condition, or avoided using Banker's Algorithm which verifies safe system states prior to resource allocation.
+
+user: what is the difference between a process and a thread?
+assistant: A process is an independent execution unit with its own private virtual memory space. A thread is a lightweight dispatchable sub-unit of a process that shares code and heap memory.
+
+user: what is paging in virtual memory?
+assistant: Paging divides physical RAM into fixed-size frames and virtual address space into pages. The MMU translates virtual page numbers to physical frame numbers using page tables.
+
+user: what is time complexity in algorithms?
+assistant: Time complexity quantifies the amount of computational time an algorithm takes as a function of input size n, commonly expressed using Big O notation for upper bounds.
+
+user: explain binary search
+assistant: Binary search locates a target value within a sorted array by repeatedly dividing the search space in half. Its time complexity is logarithmic O(log n).
+
+user: what is dynamic programming?
+assistant: Dynamic programming solves complex problems by breaking them down into overlapping subproblems, computing solutions once, and storing them via memoization or tabulation.
+
+user: what is a binary search tree?
+assistant: A binary search tree is a node-based binary tree where each node's left subtree contains keys smaller than the node, and the right subtree contains keys larger than the node.
+
+user: explain dijkstra algorithm
+assistant: Dijkstra's algorithm finds the shortest path from a source vertex to all other vertices in a weighted graph with non-negative edge weights using a priority queue.
+
+user: what is tf idf in natural language processing?
+assistant: TF-IDF evaluates token significance by multiplying Term Frequency by Inverse Document Frequency, penalizing ubiquitous words while highlighting distinctive terms.
+
+user: how does cosine similarity work?
+assistant: Cosine similarity computes the cosine of the angle between two multi-dimensional vectors, evaluating directional similarity independent of magnitude on a scale from minus one to one.
+
+user: what is the purpose of sqlite write ahead logging?
+assistant: SQLite Write-Ahead Logging (WAL) appends changes to a separate log file, permitting concurrent reader processes while a writer commits transactions.
+
+user: what is gate computer science?
+assistant: GATE CSE is a comprehensive competitive examination testing discrete mathematics, algorithms, data structures, operating systems, databases, computer networks, and theory of computation.
+
+user: explain backpropagation in neural networks
+assistant: Backpropagation computes the partial derivatives of the scalar objective loss with respect to all network weights using the multivariable calculus chain rule.
+
+user: what is adamw optimizer?
+assistant: AdamW is an adaptive gradient optimization algorithm that separates L2 weight decay regularization from gradient momentum updates, stabilizing transformer training.
+
+user: what is self attention?
+assistant: Self-attention enables each token in a sequence to attend to all other tokens, computing a weighted combination of value vectors based on scaled dot-product query-key affinities.
+
+user: tell me about yourself
+assistant: I am JARVIS, an autonomous personal AI system engineered with custom Transformer architecture, local persistent memory, and a 10-step reasoning engine.
+
+user: good morning jarvis
+assistant: Good morning, sir. Core diagnostics are green. What challenge shall we tackle today?
+
+user: good evening jarvis
+assistant: Good evening, sir. All subsystems are online and standing by for your instructions.

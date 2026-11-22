@@ -1,0 +1,27 @@
+# ============================================================
+# JARVIS AI — Optional / Future Requirements
+# Install ONLY the packages you need for specific features.
+# These are NOT imported in any active code path.
+# ============================================================
+
+# --- Future: Better offline STT (Phase 10+) ---
+# faster-whisper>=1.0.0
+# sounddevice>=0.4.6
+
+# --- Future: GUI interface (Phase 15+) ---
+# customtkinter>=5.2.0
+
+# --- Future: BPE tokenizer support (Phase 11) ---
+# tiktoken>=0.7.0
+
+# --- Future: Redis (Phase 3+ if chosen over SQLite) ---
+# redis==5.2.0
+
+# --- Future: Containerization ---
+# docker (use Docker Desktop; not a pip package)
+
+# ============================================================
+# NEVER INSTALL (violate zero-cloud-AI constraint):
+#   openai, google-generativeai, anthropic
+#   langchain-openai, langchain-google-genai, langchain-anthropic
+# ============================================================

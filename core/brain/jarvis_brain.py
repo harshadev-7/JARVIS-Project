@@ -20,7 +20,7 @@ from config.settings import settings
 from core.brain.context import ConversationContext
 from core.brain.router import IntentRouter, IntentType, RoutingDecision
 from core.logger import log
-from custom_ai.inference import InferenceResponse, LocalModelInference
+from custom_ai.inference_core import InferenceResponse, LocalModelInference
 from custom_ai.model import DecoderOnlyTransformer
 from custom_ai.model_registry import LocalModelRegistry
 from custom_ai.tokenizer import TextTokenizer
@@ -170,10 +170,13 @@ class JARVISBrain:
         try:
             # Step 2: Handle Intent
             if decision.intent == IntentType.GREETING:
+                from core.memory.persistent_memory import persistent_memory
+                user_name = await persistent_memory.get_preference("user_name") or "sir"
+                address = user_name if user_name and user_name.lower() != "sir" else "sir"
                 reply_content = (
-                    "Good day, sir. All JARVIS core systems are fully online and operational.\n"
-                    "My local custom Transformer neural network is loaded and running locally on your CPU.\n"
-                    "How may I assist you today?"
+                    f"Hello, {address}! All JARVIS core systems are fully online and operational.\n"
+                    f"My local custom Transformer neural network is loaded and running locally on your CPU.\n"
+                    f"How may I assist you today?"
                 )
 
             elif decision.intent == IntentType.IDENTITY:
@@ -268,6 +271,13 @@ class JARVISBrain:
                 act = app_controller.launch_app(target_app, autonomy_level=settings.DEFAULT_AUTONOMY_LEVEL)
                 reply_content = f"**Computer Automation Action:**\n{act.message}"
 
+            elif decision.intent == IntentType.VIDEO_EDITING:
+                agent_used = "VideoEditingAgent"
+                from core.orchestrator.agent_registry import VideoEditingAgent
+                agent = VideoEditingAgent()
+                res = await agent.execute(decision.extracted_query or user_message)
+                reply_content = f"**Video Editing Operation:**\n{res.summary}"
+
             elif decision.intent == IntentType.RESEARCH:
                 agent_used = "ResearchAgent"
                 from services.internet.research_pipeline import research_pipeline
@@ -283,35 +293,120 @@ class JARVISBrain:
                 agent_used = "ProblemSolvingAgent"
                 from core.planner.reasoning_engine import reasoning_engine
                 sol = reasoning_engine.solve(decision.extracted_query)
-                reply_content = (
-                    f"**10-Step Autonomous Reasoning Synthesis:**\n\n"
-                    f"- **Goal:** {sol.step_1_objective_understanding.primary_goal}\n"
-                    f"- **Selected Strategy:** {sol.step_7_selected_solution.name}\n"
-                    f"- **Verification:** {sol.step_9_verification.actual_outcome}\n\n"
-                    f"{sol.step_10_final_report}"
-                )
+                reply_content = sol.step_10_final_report
+
+            elif decision.intent == IntentType.MEMORY_STORE:
+                agent_used = "MemoryAgent"
+                from core.memory.memory_extractor import memory_extractor
+                from core.memory.persistent_memory import persistent_memory
+                stored_facts = await memory_extractor.extract_and_store(user_message)
+
+                name = stored_facts.get("name") or (await persistent_memory.get_preference("user_name")) or "sir"
+                msg_lower = user_message.lower()
+                asks_jarvis_name = any(w in msg_lower for w in ["what is your name", "what's your name", "who are you", "your name"])
+
+                if "name" in stored_facts and asks_jarvis_name:
+                    reply_content = (
+                        f"Hello, {name}! My name is **JARVIS** (Just A Rather Very Intelligent System).\n"
+                        f"It is an absolute pleasure to meet you, sir. How may I assist you today?"
+                    )
+                elif "name" in stored_facts:
+                    extra = []
+                    if "role" in stored_facts:
+                        extra.append(f"as a {stored_facts['role']}")
+                    if "target_exam" in stored_facts:
+                        extra.append(f"preparing for {stored_facts['target_exam']}")
+                    if "interest" in stored_facts:
+                        extra.append(f"focusing on {stored_facts['interest']}")
+
+                    context_str = f" ({', '.join(extra)})" if extra else ""
+                    reply_content = (
+                        f"Hello, {name}! It is a pleasure to meet you, sir{context_str}.\n"
+                        f"I have updated your profile. How may I assist you today?"
+                    )
+                elif "role" in stored_facts or "target_exam" in stored_facts or "interest" in stored_facts:
+                    noted = []
+                    if "role" in stored_facts:
+                        noted.append(f"your role as a **{stored_facts['role']}**")
+                    if "target_exam" in stored_facts:
+                        noted.append(f"your preparation for **{stored_facts['target_exam']}**")
+                    if "interest" in stored_facts:
+                        noted.append(f"your interest in **{stored_facts['interest']}**")
+                    reply_content = f"Understood, {name}. I have noted {', and '.join(noted)}. I'll tailor our planning and discussions accordingly."
+                elif "custom_fact" in stored_facts:
+                    reply_content = f"Understood, {name}. I have committed that to memory: *\"{stored_facts['custom_fact']}\"*."
+                else:
+                    reply_content = f"Understood, {name}. I have updated your profile preferences."
+
+            elif decision.intent == IntentType.MEMORY_QUERY:
+                agent_used = "MemoryAgent"
+                from core.memory.memory_extractor import memory_extractor
+                reply_content = await memory_extractor.answer_memory_query(user_message, session_id=session_id)
 
             else:
-                # General conversation -> query our custom local Transformer model
-                agent_used = "CustomTransformer"
-                if self.local_inference:
-                    gen_text = self.local_inference.generate(
-                        prompt=user_message,
-                        max_new_tokens=16,
-                        temperature=temperature,
-                        top_k=10,
-                    )
-                    reply_content = (
-                        f"Understood, sir. Regarding *'{user_message}'*:\n\n"
-                        f"> {gen_text}\n\n"
-                        f"*(Generated locally by J.A.R.V.I.S. Custom Transformer on CPU)*"
-                    )
+                # General conversation -> Check if matches learned pattern engine or cognitive concepts
+                from core.planner.learned_pattern_engine import learned_pattern_engine
+                from core.planner.cognitive_solver import cognitive_solver
+
+                pat_sol = learned_pattern_engine.match_and_solve(user_message)
+                if pat_sol:
+                    agent_used = "LearnedPatternEngine"
+                    reply_content = pat_sol.get("solution", "")
                 else:
-                    reply_content = f"Understood, sir. Processing: '{user_message}'. Systems operational."
+                    q_lower = user_message.lower()
+                    if (
+                        cognitive_solver._is_cognitive_conceptual(q_lower)
+                        or cognitive_solver._is_study_strategy(q_lower)
+                        or cognitive_solver._is_rate_problem(q_lower)
+                        or cognitive_solver._is_clock_problem(q_lower)
+                        or cognitive_solver._is_math_equation(q_lower)
+                    ):
+                        agent_used = "CognitiveSolver"
+                        sol_data = cognitive_solver.solve(user_message)
+                        reply_content = sol_data.get("solution", f"Understood, sir. Processing: '{user_message}'.")
+                    else:
+                        from core.brain.conversational_cortex import conversational_cortex
+                        from core.memory.persistent_memory import persistent_memory
+
+                        user_name = await persistent_memory.get_preference("user_name") or "sir"
+                        conv_reply = await conversational_cortex.respond(
+                            user_message=user_message,
+                            user_name=user_name,
+                            conversation_history=conversation_history,
+                        )
+                        if conv_reply:
+                            agent_used = "ConversationalCortex"
+                            reply_content = conv_reply
+                        else:
+                            # Step 2c: Query RAG Engine for verified offline knowledge
+                            from knowledge.rag_engine import rag_engine
+                            rag_ctx = await rag_engine.retrieve(user_message, top_k=2)
+                            if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
+                                agent_used = "RAGEngine"
+                                reply_content = (
+                                    f"Based on my verified offline knowledge repository:\n\n"
+                                    + "\n\n".join([f"**{e.title}** ({e.category.upper()}):\n{e.content}" for e in rag_ctx.entries])
+                                )
+                            else:
+                                agent_used = "CustomTransformer"
+                            reply_content = (
+                                f"I hear you, {user_name}. All JARVIS core systems are fully online.\n"
+                                f"Execution Engine: Custom Transformer running on local CPU.\n"
+                                f"You can ask me to solve reasoning challenges (`/solve <problem>`), conduct live internet research (`/research <topic>`), "
+                                f"review your study plan, or manage system automation."
+                            )
 
         except Exception as e:
             log.error(f"Brain execution error on '{user_message}': {e}")
             reply_content = f"An issue occurred while processing your request: {e}. Standing by."
+
+        # Store dialogue episode in persistent SQLite memory
+        try:
+            from core.memory.persistent_memory import persistent_memory
+            await persistent_memory.store_episode(session_id=session_id, role="user", content=user_message)
+            await persistent_memory.store_episode(session_id=session_id, role="assistant", content=reply_content)
+        except Exception as e:
+            log.warning(f"Could not persist conversation episode: {e}")
 
         duration_ms = (time.perf_counter() - start_time) * 1000.0
         context.add_assistant_turn(reply_content)

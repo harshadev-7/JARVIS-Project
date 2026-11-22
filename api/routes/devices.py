@@ -91,6 +91,17 @@ async def dispatch_task(request: DispatchTaskRequest):
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@router.get("/{device_id}/tasks", response_model=List[RemoteTaskPayload], summary="Fetch pending remote tasks for a device")
+async def get_device_tasks(device_id: str, clear: bool = True):
+    return device_registry.get_pending_tasks(device_id=device_id, clear=clear)
+
+
+@router.post("/{device_id}/tasks/{task_id}/complete", summary="Report remote task completed")
+async def complete_device_task(device_id: str, task_id: str, result: Optional[Dict[str, Any]] = None):
+    device_registry.complete_task(task_id=task_id, result_data=result)
+    return {"status": "acknowledged", "task_id": task_id}
+
+
 @router.delete("/{device_id}", summary="Revoke and disconnect device")
 async def disconnect_device(device_id: str):
     success = device_registry.disconnect_device(device_id)

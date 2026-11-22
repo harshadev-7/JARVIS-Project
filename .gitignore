@@ -23,6 +23,11 @@ env/
 .ruff_cache/
 .tox/
 .gradle/
+*.whl
+libs/*.whl
+local_libs/
+local_packages/
+output/
 
 # ── Database files ────────────────────────────────────────────────────────
 *.db

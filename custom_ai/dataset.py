@@ -50,9 +50,19 @@ def load_corpus_file(file_path: str | Path, delimiter: str = "\n\n") -> List[str
 def split_train_val(
     samples: List[str],
     val_ratio: float = 0.15,
+    train_ratio: Optional[float] = None,
     seed: int = 42,
 ) -> Tuple[List[str], List[str]]:
-    """Split samples into train and validation sets deterministically."""
+    """Split samples into train and validation sets.
+
+    Either `val_ratio` (fraction of data for validation) or `train_ratio`
+    (fraction for training) can be supplied. If `train_ratio` is provided it
+    overrides `val_ratio` via `val_ratio = 1 - train_ratio`.
+    """
+    if train_ratio is not None:
+        if not 0 < train_ratio < 1:
+            raise ValueError("train_ratio must be between 0 and 1 (exclusive)")
+        val_ratio = 1 - train_ratio
     if not samples:
         return [], []
 

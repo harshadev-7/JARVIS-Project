@@ -52,6 +52,10 @@ HELP_TEXT = """
   [yellow]/help[/yellow]       → Show this help menu
   [yellow]/solve <task>[/yellow]→ Execute 10-step reasoning & problem solving
   [yellow]/research <q>[/yellow]→ Deep internet research & knowledge indexing
+  [yellow]/metrics[/yellow]    → Real-time CPU, RAM, & disk hardware telemetry
+  [yellow]/memory[/yellow]     → Inspect persistent user profile & episodic memory
+  [yellow]/agents[/yellow]     → Inspect all 15 specialized agents in the swarm
+  [yellow]/voice <txt>[/yellow]→ Synthesize speech audio using local/neural TTS
   [yellow]/history[/yellow]    → Show conversation history
   [yellow]/clear[/yellow]      → Clear conversation memory
   [yellow]/status[/yellow]     → Show system status
@@ -62,7 +66,11 @@ HELP_TEXT = """
 Type any message to talk with JARVIS.
 """
 
-COMMANDS = {"/help", "/solve", "/research", "/history", "/clear", "/status", "/session", "/exit", "/quit"}
+COMMANDS = {
+    "/help", "/solve", "/research", "/metrics", "/memory",
+    "/agents", "/voice", "/history", "/clear", "/status",
+    "/session", "/exit", "/quit"
+}
 
 
 def display_banner():
@@ -143,8 +151,9 @@ async def handle_command(command: str, session_id: str) -> bool:
                     f"[dim]{msg.timestamp.strftime('%H:%M:%S')}[/dim]\n"
                 )
 
-    elif cmd.startswith("/solve"):
-        problem = command[6:].strip()
+    elif any(cmd.startswith(prefix) for prefix in ["/solve", "/slove", "/solv", "/sove", "/calc", "/calculate"]):
+        parts = command.split(maxsplit=1)
+        problem = parts[1].strip() if len(parts) > 1 else ""
         if not problem:
             console.print("[yellow]Usage:[/yellow] /solve <describe the complex objective or problem>\n")
             return True
@@ -157,15 +166,23 @@ async def handle_command(command: str, session_id: str) -> bool:
 
         console.print(Panel(
             f"[bold cyan]1. Primary Goal:[/bold cyan] {res.step_1_objective_understanding.primary_goal}\n"
-            f"[bold cyan]2. Situation Assessment:[/bold cyan] {res.step_2_situation_assessment}\n"
-            f"[bold cyan]3. Selected Strategy:[/bold cyan] {res.step_7_selected_solution.name} (Score: {res.step_7_selected_solution.composite_score})\n"
+            f"[bold cyan]2. Strategy:[/bold cyan] {res.step_7_selected_solution.name} (Score: {res.step_7_selected_solution.composite_score:.2f})\n"
+            f"[bold cyan]3. Complexity:[/bold cyan] {res.step_2_situation_assessment}\n"
             f"[bold cyan]4. Authorization:[/bold cyan] {res.step_6_evaluation.authorization_note}\n\n"
             f"[bold yellow]Execution Plan:[/bold yellow]\n" +
             "\n".join([f"  • [{t.id}] {t.title}: {t.description}" for t in res.step_8_execution_plan.subtasks]) +
             f"\n\n[bold green]Verification:[/bold green] {res.step_9_verification.actual_outcome}",
-            title="[bold blue]JARVIS Reasoning Engine Synthesis[/bold blue]",
+            title="[bold blue]JARVIS Cognitive Reasoning Framework[/bold blue]",
             border_style="blue",
         ))
+
+        # Render the full concrete solution synthesized by the cognitive engine
+        if res.detailed_solution:
+            console.print(Panel(
+                Markdown(res.detailed_solution),
+                title="[bold green]JARVIS Verified Solution & Strategy[/bold green]",
+                border_style="green",
+            ))
         console.print()
 
     elif cmd.startswith("/research"):
@@ -191,9 +208,64 @@ async def handle_command(command: str, session_id: str) -> bool:
         ))
         console.print()
 
+    elif cmd in ("/metrics", "/system"):
+        from services.automation.system_monitor import system_monitor
+        m = system_monitor.get_metrics()
+        table = Table(title="JARVIS Hardware & Resource Telemetry", border_style="cyan")
+        table.add_column("Resource", style="cyan")
+        table.add_column("Telemetry", style="white")
+        table.add_row("CPU Utilization", f"{m.cpu_percent}%")
+        table.add_row("RAM Active", f"{m.ram_used_gb} GB / {m.ram_total_gb} GB ({m.ram_percent}%)")
+        table.add_row("Disk Usage", f"{m.disk_percent}%")
+        table.add_row("System Status", "[green]Healthy[/green]" if m.is_healthy else "[red]Warning[/red]")
+        console.print(table)
+        console.print()
+
+    elif cmd in ("/memory", "/profile"):
+        from core.memory.persistent_memory import persistent_memory
+        prefs = await persistent_memory.get_all_preferences()
+        episodes = await persistent_memory.get_recent_episodes(session_id=session_id, limit=5)
+        table = Table(title="JARVIS Persistent Intelligence Memory (jarvis.db)", border_style="magenta")
+        table.add_column("Property / Fact", style="magenta")
+        table.add_column("Stored Value", style="white")
+        if prefs:
+            for k, v in prefs.items():
+                table.add_row(k.replace("_", " ").title(), str(v))
+        else:
+            table.add_row("Profile State", "No explicit profile facts committed yet. Tell JARVIS your name, role, or goals!")
+        table.add_row("Recent Turns Stored", str(len(episodes)))
+        console.print(table)
+        console.print()
+
+    elif cmd == "/agents":
+        from core.orchestrator.agent_registry import agent_registry
+        table = Table(title="JARVIS Multi-Agent Swarm (15 Specialized Agents)", border_style="blue")
+        table.add_column("Agent Name", style="cyan")
+        table.add_column("Role", style="white")
+        table.add_column("Autonomy", style="yellow")
+        for ag in agent_registry.list_agents():
+            table.add_row(ag.name, ag.role, f"Level {ag.required_autonomy_level}")
+        console.print(table)
+        console.print()
+
+    elif cmd.startswith("/voice"):
+        text = command[6:].strip()
+        if not text:
+            console.print("[yellow]Usage:[/yellow] /voice <text to synthesize into speech>\n")
+            return True
+        from services.voice.tts_engine import tts_engine
+        with console.status("[dim]Synthesizing speech audio...[/dim]", spinner="dots"):
+            audio_path = await tts_engine.synthesize(text)
+        console.print(f"[bold green]Voice Audio Generated:[/bold green] {audio_path}\n")
+
     elif cmd == "/clear":
         memory_manager.delete_session(session_id)
         console.print("[dim]Conversation memory cleared.[/dim]\n")
+
+    else:
+        token = command.split()[0]
+        console.print(f"[yellow]Unknown command '{token}'. Did you mean /solve or /help?[/yellow]\n")
+        console.print("[dim]Type /help to see all available commands.[/dim]\n")
 
     return True
 
@@ -320,5 +392,22 @@ def serve(
     )
 
 
+@app_cli.command()
+def gui():
+    """Launch the JARVIS Desktop Arc Reactor HUD Graphical User Interface."""
+    console.print("\n[bold cyan]◈ Launching J.A.R.V.I.S. Desktop Arc Reactor HUD...[/bold cyan]\n")
+    from interface.hud_app import launch_gui
+    launch_gui()
+
+
+@app_cli.command()
+def hud():
+    """Alias for 'gui' command: Launch Desktop HUD."""
+    gui()
+
+
 if __name__ == "__main__":
+    # If no subcommand specified, default to interactive CLI mode ('start')
+    if len(sys.argv) == 1 or (len(sys.argv) > 1 and sys.argv[1].startswith("-") and sys.argv[1] not in ("--help", "-h")):
+        sys.argv.insert(1, "start")
     app_cli()

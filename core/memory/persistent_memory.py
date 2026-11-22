@@ -36,7 +36,13 @@ class PersistentMemoryManager:
     """
 
     def __init__(self, database_url: Optional[str] = None):
-        self.db_url = database_url or settings.DATABASE_URL
+        raw_url = database_url or settings.DATABASE_URL
+        if "sqlite" in raw_url and ("./" in raw_url or raw_url.endswith("/jarvis.db")):
+            from config.settings import BASE_DIR
+            resolved_db = (BASE_DIR / "jarvis.db").as_posix()
+            self.db_url = f"sqlite+aiosqlite:///{resolved_db}"
+        else:
+            self.db_url = raw_url
         self.engine = create_async_engine(self.db_url, echo=False)
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
         self._initialized = False
@@ -106,6 +112,11 @@ class PersistentMemoryManager:
                 }
                 for p in prefs
             ]
+
+    async def get_all_preferences(self) -> Dict[str, str]:
+        """Convenience method returning key-value dictionary of all preferences."""
+        items = await self.list_preferences()
+        return {item["key"]: item["value"] for item in items}
 
     # ── Task Execution History & Mistake Avoidance ─────────────────────────────
 
@@ -199,6 +210,49 @@ class PersistentMemoryManager:
         ]
 
     # ── Deletion and Inspection ────────────────────────────────────────────────
+
+    async def store_episode(self, session_id: str, role: str, content: str) -> int:
+        """Store a dialogue episode in SQLite persistent memory."""
+        await self.initialize()
+        async with self.session_factory() as session:
+            episode = ConversationEpisode(
+                session_id=session_id,
+                role=role,
+                content=content,
+            )
+            session.add(episode)
+            await session.commit()
+            return episode.id
+
+    async def get_recent_episodes(self, session_id: Optional[str] = None, limit: int = 15) -> List[Dict[str, Any]]:
+        """Retrieve recent conversation episodes from SQLite."""
+        await self.initialize()
+        async with self.session_factory() as session:
+            stmt = select(ConversationEpisode)
+            if session_id:
+                stmt = stmt.where(ConversationEpisode.session_id == session_id)
+            stmt = stmt.order_by(ConversationEpisode.created_at.desc()).limit(limit)
+            result = await session.execute(stmt)
+            episodes = result.scalars().all()
+            return [
+                {
+                    "id": ep.id,
+                    "session_id": ep.session_id,
+                    "role": ep.role,
+                    "content": ep.content,
+                    "created_at": ep.created_at.isoformat(),
+                }
+                for ep in reversed(episodes)
+            ]
+
+    async def delete_preference(self, key: str) -> bool:
+        """Delete a preference by key."""
+        await self.initialize()
+        async with self.session_factory() as session:
+            stmt = delete(UserPreference).where(UserPreference.key == key)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount > 0
 
     async def delete_item(self, table_name: str, item_id: int) -> bool:
         """Allow user to inspect, update, and delete stored information."""

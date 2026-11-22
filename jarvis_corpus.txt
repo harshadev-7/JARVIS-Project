@@ -1,0 +1,160 @@
+"""J.A.R.V.I.S. Training Corpus — Phase 2 Expanded.
+
+This corpus is used to train the custom DecoderOnlyTransformer.
+Each paragraph block is a separate training sample (split on blank lines).
+Covers: JARVIS identity, computer science, Java, Python, OS concepts,
+        algorithms, reasoning, greetings, and AI knowledge.
+
+Target: 500+ sentences for meaningful vocabulary and generation quality.
+"""
+
+JARVIS is an offline-first personal AI assistant built from scratch.
+JARVIS runs entirely on your local CPU without any cloud dependencies.
+JARVIS uses a custom GPT-style decoder-only Transformer neural network.
+The JARVIS neural engine has 130,944 parameters trained locally.
+
+Hello, I am JARVIS, Just A Rather Very Intelligent System.
+I am your independent, offline personal AI assistant.
+I can solve reasoning problems, conduct research, and automate your computer.
+I run completely on your local hardware with no internet required for core tasks.
+
+The Transformer architecture uses self-attention to process sequences.
+Multi-head attention allows the model to attend to different positions simultaneously.
+Scaled dot-product attention computes similarity between queries and keys.
+The attention formula is Softmax of QK transpose divided by square root of d_k times V.
+
+A decoder-only Transformer generates text autoregressively one token at a time.
+Causal masking prevents the model from attending to future tokens during training.
+Pre-layer normalization improves gradient flow and training stability.
+The feed-forward network expands the embedding dimension by four times.
+
+Java is a statically typed, object-oriented programming language.
+Java follows the Write Once Run Anywhere principle using the JVM.
+The Java Virtual Machine converts bytecode to machine-specific instructions.
+Garbage collection in Java automatically manages memory allocation and deallocation.
+
+Object-oriented programming has four main pillars: encapsulation, inheritance, polymorphism, and abstraction.
+Encapsulation hides internal state and requires interaction through methods.
+Inheritance allows a class to acquire properties and behaviors from a parent class.
+Polymorphism enables objects of different types to be treated uniformly through a common interface.
+Abstraction hides complexity by exposing only the essential features of an object.
+
+Java collections include ArrayList, LinkedList, HashMap, HashSet, TreeMap, and Queue.
+An ArrayList provides O of 1 access and O of n insertion in the middle.
+A HashMap provides O of 1 average time for get and put operations.
+A LinkedList provides O of 1 insertion at the head or tail and O of n search.
+
+Exception handling in Java uses try, catch, finally, and throw keywords.
+A checked exception must be declared in the method signature or caught explicitly.
+An unchecked exception extends RuntimeException and does not require explicit handling.
+The finally block always executes regardless of whether an exception occurred.
+
+An operating system manages hardware resources and provides services to applications.
+The kernel is the core of an operating system running in privileged mode.
+Process scheduling determines which process runs on the CPU at any given time.
+Memory management handles allocation and deallocation of RAM for processes.
+
+Deadlock occurs when four Coffman conditions hold simultaneously.
+The four conditions for deadlock are mutual exclusion, hold and wait, no preemption, and circular wait.
+Banker's algorithm prevents deadlock by ensuring the system stays in a safe state.
+Deadlock can be prevented by breaking one of the four Coffman conditions.
+
+A process is a program in execution with its own memory space and resources.
+A thread is a lightweight unit of execution within a process sharing the same memory.
+Context switching saves and restores the state of a CPU between process executions.
+Semaphores and mutexes are synchronization primitives used to prevent race conditions.
+
+Python is a high-level, interpreted, dynamically typed programming language.
+Python supports multiple programming paradigms including procedural, object-oriented, and functional.
+The Global Interpreter Lock in CPython prevents true parallel thread execution.
+Python's garbage collector uses reference counting with a cycle detector.
+
+An algorithm is a step-by-step procedure for solving a computational problem.
+Time complexity measures how runtime grows relative to input size.
+Space complexity measures how memory usage grows relative to input size.
+Big O notation describes the upper bound of an algorithm's complexity.
+
+Binary search runs in O of log n time by halving the search space each step.
+Bubble sort has O of n squared time complexity and is not suitable for large datasets.
+Merge sort uses divide and conquer and runs in O of n log n time.
+Quick sort has average O of n log n but worst case O of n squared time complexity.
+
+A stack is a last-in first-out data structure with push and pop operations.
+A queue is a first-in first-out data structure with enqueue and dequeue operations.
+A tree is a hierarchical data structure with nodes connected by edges.
+A binary search tree maintains the property that left children are smaller and right children are larger.
+
+Recursion is a technique where a function calls itself to solve a smaller subproblem.
+Dynamic programming solves problems by breaking them into overlapping subproblems and caching results.
+Greedy algorithms make the locally optimal choice at each step hoping for a global optimum.
+Backtracking explores all possible solutions by building candidates incrementally and abandoning invalid ones.
+
+A graph is a collection of vertices connected by edges.
+A breadth-first search explores vertices level by level from the source node.
+A depth-first search explores as far as possible along each branch before backtracking.
+Dijkstra's algorithm finds the shortest path in a weighted graph with non-negative edges.
+
+Machine learning is a subset of artificial intelligence enabling systems to learn from data.
+Supervised learning trains a model on labeled input-output pairs.
+Unsupervised learning finds hidden structure in unlabeled data.
+A neural network is a computational graph of interconnected nodes inspired by biological neurons.
+
+The loss function measures the difference between predicted and actual outputs.
+Gradient descent minimizes the loss by updating parameters in the direction of steepest decrease.
+Backpropagation computes gradients of the loss with respect to each parameter using the chain rule.
+The learning rate controls how large a step to take during each gradient descent update.
+
+Embedding is a dense vector representation of discrete tokens such as words.
+Positional encoding adds information about the position of each token in the sequence.
+Softmax converts a vector of logits into a probability distribution summing to one.
+Cross-entropy loss penalizes the model proportionally to the negative log probability of the correct class.
+
+GATE is the Graduate Aptitude Test in Engineering for admission to postgraduate programs in India.
+Computer Science Engineering at GATE covers algorithms, data structures, operating systems, and networks.
+Java backend development involves building server-side applications using Spring Boot, REST APIs, and databases.
+SQL databases store structured data in tables with rows and columns using relational algebra.
+
+SQLite is a lightweight embedded database that stores data in a single file on disk.
+Write-Ahead Logging in SQLite improves concurrency by writing changes to a log before applying them.
+SQLAlchemy is a Python ORM that maps Python classes to database tables.
+Asynchronous programming allows a program to perform multiple tasks concurrently without blocking.
+
+TF-IDF stands for Term Frequency-Inverse Document Frequency.
+TF-IDF measures how important a word is to a document relative to a collection of documents.
+Cosine similarity measures the angle between two vectors to determine their semantic similarity.
+A vector store indexes text as dense or sparse vectors for efficient similarity search.
+
+The CPU executes instructions by fetching, decoding, executing, and storing results.
+Cache memory is faster than RAM and stores frequently accessed data close to the CPU.
+Virtual memory extends RAM by using disk space as overflow storage.
+Paging divides memory into fixed-size blocks called pages to avoid external fragmentation.
+
+Networking enables computers to communicate and share resources over a local or wide area network.
+TCP provides reliable, ordered, connection-oriented data transmission between endpoints.
+UDP provides fast, connectionless transmission without delivery guarantees.
+HTTP is a stateless application-layer protocol used for transferring web content.
+
+Security in software involves authentication, authorization, encryption, and input validation.
+Encryption transforms data into an unreadable format using a cryptographic key.
+A firewall monitors and controls incoming and outgoing network traffic based on rules.
+SQL injection is an attack that inserts malicious SQL code into input fields to manipulate databases.
+
+I can analyze your Java code for syntax errors and security vulnerabilities.
+I can help you prepare for GATE by explaining algorithms and data structures step by step.
+I can search the web and synthesize research reports without storing your queries in the cloud.
+I can monitor your system CPU, RAM, and disk usage in real time.
+
+My reasoning engine follows ten steps to solve any problem you give me.
+First I understand the objective, then I analyze the situation and collect information.
+I identify available resources, generate multiple approaches, and evaluate each option.
+Then I select the best solution, plan execution, verify the outcome, and report the results.
+
+Good morning. All JARVIS systems are fully operational and ready for your commands.
+Good evening. How may I assist you today with your studies or projects?
+Hello. I am at your service. What would you like to explore or accomplish today?
+Understood. I have committed your preferences to my persistent memory database.
+
+The SQLite database jarvis.db stores all your conversation history and learned patterns.
+I remember your name, your role, your examination goals, and your areas of interest.
+Every research result I find is indexed into my knowledge base for offline recall later.
+I learn from every problem I solve and store the pattern for instant future recognition.
