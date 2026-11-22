@@ -68,16 +68,17 @@ class VoiceAgent(BaseAgent):
                 # Check for wake word in text
                 event = wake_word_detector.check_wake_phrase(task)
                 duration = time.perf_counter() - start_time
+                phrase_det = getattr(event, "phrase_detected", "hey jarvis") if event else None
                 return AgentTaskResult(
                     agent_name=self.name,
                     task_id=f"voice_wake_{int(time.time())}",
                     success=True,
                     data={
-                        "wake_detected": event is not None,
-                        "phrase": event.phrase_detected if event else None,
+                        "wake_detected": bool(event),
+                        "phrase": phrase_det,
                         "command": wake_word_detector.extract_command(task) if event else task,
                     },
-                    summary=f"Wake check: {'Detected ' + event.phrase_detected if event else 'None'}",
+                    summary=f"Wake check: {'Detected ' + phrase_det if event else 'None'}",
                     duration_sec=duration,
                 )
 

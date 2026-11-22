@@ -164,6 +164,16 @@ class STTEngine:
                 wf.writeframes(b"\x00\x00" * n_samples)
             return out
 
+    def status(self) -> dict:
+        """Return operational telemetry."""
+        return {
+            "engine_type": self._engine_type,
+            "model_size": self.model_size,
+            "initialized": self._initialized,
+            "device": "cpu",
+            "offline": True,
+        }
+
 
 stt_engine = STTEngine()
 

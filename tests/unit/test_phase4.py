@@ -74,16 +74,17 @@ async def test_web_browser_html_cleaning():
 @pytest.mark.asyncio
 async def test_research_pipeline_execution():
     """Pipeline should synthesize findings and generate citations."""
-    report = await research_pipeline.conduct_research(
-        topic="Artificial Intelligence Agents",
-        max_sources=2,
-        auto_index_memory=True,
-    )
+    with patch("research.web_search.web_search_engine.is_connected", return_value=True):
+        report = await research_pipeline.conduct_research(
+            topic="Artificial Intelligence Agents",
+            max_sources=2,
+            auto_index_memory=True,
+        )
 
-    assert report.topic == "Artificial Intelligence Agents"
-    assert len(report.citations) > 0
-    assert report.summary != ""
-    assert report.knowledge_indexed is True
+        assert report.topic == "Artificial Intelligence Agents"
+        assert len(report.citations) > 0
+        assert report.summary != ""
+        assert report.knowledge_indexed is True
 
 
 # ── 4. FastAPI Research Endpoints Tests ──────────────────────────────────────

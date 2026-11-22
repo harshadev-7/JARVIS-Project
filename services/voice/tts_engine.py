@@ -17,6 +17,7 @@ from typing import Optional
 
 from config.settings import BASE_DIR, settings
 from core.logger import log
+from voice.text_to_speech import LocalTTSEngine, TTSResult, VoiceInfo
 
 try:
     import edge_tts
@@ -33,6 +34,7 @@ class TTSEngine:
         self.voice = voice or self.DEFAULT_VOICE
         self.output_dir = BASE_DIR / "logs" / "voice_cache"
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.local_engine = LocalTTSEngine()
         self._current_process: Optional[subprocess.Popen] = None
         self._is_speaking = False
 
@@ -96,29 +98,17 @@ class TTSEngine:
             )
         return target_path
 
-    def speak(self, text: str, voice: Optional[str] = None) -> None:
-        """Non-blocking text-to-speech spoken directly through system audio output."""
-        def _speak_thread():
-            self._is_speaking = True
-            try:
-                import pyttsx3
-                engine = pyttsx3.init()
-                # Set British male or calm voice if available
-                voices = engine.getProperty("voices")
-                for v in voices:
-                    if "george" in v.name.lower() or "david" in v.name.lower() or "ryan" in v.name.lower():
-                        engine.setProperty("voice", v.id)
-                        break
-                engine.setProperty("rate", 175)
-                engine.say(text)
-                engine.runAndWait()
-            except Exception as e:
-                log.debug(f"Direct speaker output notice: {e}")
-            finally:
-                self._is_speaking = False
+    def speak(self, text: str, voice: Optional[str] = None) -> TTSResult:
+        """Immediate spoken output using local SAPI5 engine."""
+        return self.local_engine.speak(text)
 
-        thread = threading.Thread(target=_speak_thread, daemon=True)
-        thread.start()
+    def speak_async(self, text: str) -> None:
+        """Non-blocking background spoken output."""
+        self.local_engine.speak_async(text)
+
+    def status(self) -> dict:
+        """Return engine telemetry."""
+        return self.local_engine.status()
 
 
 tts_engine = TTSEngine()

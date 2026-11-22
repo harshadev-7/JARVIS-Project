@@ -42,10 +42,7 @@ class VoiceOrchestrator:
         is_wake = wake_word_detector.check_wake_phrase(user_text)
 
         # Remove wake phrase from command
-        command = user_text
-        for phrase in wake_word_detector.WAKE_PHRASES:
-            if command.lower().startswith(phrase):
-                command = command[len(phrase):].strip(" ,.?")
+        command = wake_word_detector.extract_command(user_text)
 
         if not command:
             # Wake word only (e.g. "Hey Jarvis") -> standard greeting
