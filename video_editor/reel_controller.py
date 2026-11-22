@@ -62,23 +62,33 @@ class ReelController:
         input_audio = workspace_manager.list_input_audio()
         bg_audio = input_audio[0] if input_audio else None
 
-        if input_videos:
-            # Multi-clip footage editing pipeline!
-            return await self._execute_footage_pipeline(
-                style=style,
-                target_duration=target_dur,
-                input_videos=input_videos,
-                bg_audio=bg_audio,
-                custom_title=custom_text or subject,
+        if not input_videos:
+            # Step 5a: Autonomous Media Discovery from authorized open repositories
+            from video_editor.media_discovery import media_discovery_engine
+            report = await media_discovery_engine.discover_and_acquire(subject or clean_cmd)
+
+            if report.is_copyright_restricted:
+                return report.restriction_message
+
+            # Re-scan media/input/ for newly downloaded footage
+            input_videos = workspace_manager.list_input_videos()
+
+        if not input_videos:
+            return (
+                f"❌ **Footage Acquisition Notice:** No video footage found in `media/input/` and automated discovery "
+                f"could not obtain authorized public domain footage for '{subject or clean_cmd}'.\n\n"
+                f"JARVIS strictly complies with content policies and will never output fake color canvases or text placeholders.\n"
+                f"**Please place your video clips (`.mp4`, `.mov`, `.mkv`) into `media/input/`** and rerun your command."
             )
-        else:
-            # Autonomous Video Generation with full FFmpeg rendering!
-            return await self._execute_autonomous_pipeline(
-                style=style,
-                target_duration=target_dur,
-                topic=subject,
-                custom_title=custom_text,
-            )
+
+        # Multi-clip real footage editing pipeline!
+        return await self._execute_footage_pipeline(
+            style=style,
+            target_duration=target_dur,
+            input_videos=input_videos,
+            bg_audio=bg_audio,
+            custom_title=custom_text or subject,
+        )
 
     def parse_structured_prompt(self, prompt: str) -> Dict[str, Any]:
         """Extract topic, style, duration, format, custom text, and effects from rich prompts."""

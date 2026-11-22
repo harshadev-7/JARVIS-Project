@@ -192,15 +192,12 @@ class RenderingEngine:
         cmd = [self.ffmpeg_bin, "-y"]
 
         # 1. Inputs
-        # If no scenes were found, synthesize a dynamic vertical canvas
         if not plan.selected_scenes:
-            bg_filter = f"color=c=0x0b0f19:s={fmt.width}x{fmt.height}:d={plan.target_duration_sec:.2f}:r={fmt.fps}"
-            cmd.extend(["-f", "lavfi", "-i", bg_filter])
-            scene_count = 1
-        else:
-            for s in plan.selected_scenes:
-                cmd.extend(["-ss", f"{s.start_sec:.3f}", "-t", f"{s.duration_sec:.3f}", "-i", s.source_file])
-            scene_count = len(plan.selected_scenes)
+            raise ValueError("Rendering rejected: No valid source video scenes provided. Real video footage is required.")
+
+        for s in plan.selected_scenes:
+            cmd.extend(["-ss", f"{s.start_sec:.3f}", "-t", f"{s.duration_sec:.3f}", "-i", s.source_file])
+        scene_count = len(plan.selected_scenes)
 
         # 2. Audio input
         has_bg_audio = False

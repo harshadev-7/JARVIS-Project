@@ -25,6 +25,8 @@ from video_editor.analyzer import SceneSegment, video_analyzer
 from video_editor.branding import BrandingConfig, branding_manager
 from video_editor.formats import resolve_format_config, ExportFormatConfig
 from video_editor.effects_engine import COLOR_GRADE_PRESETS, ColorGradeConfig
+from video_editor.capcut_engine import capcut_engine
+from video_editor.multitrack_timeline import create_multitrack_timeline
 from video_editor.workspace import workspace_manager
 
 
@@ -167,7 +169,40 @@ class EditingBrain:
         intro_title = custom_title or f"{style.upper()} REEL"
         outro_text = f"EDIT BY {brand_name.upper()}"
 
-        # 9. Save Editable Timeline JSON
+        # Assign storytelling narrative roles across clips
+        for idx, s in enumerate(selected):
+            if idx == 0:
+                s.tags.append("intro_hook")
+            elif idx == len(selected) - 1:
+                s.tags.append("ending_hero")
+            elif idx == len(selected) // 2:
+                s.tags.append("transformation_drop")
+            else:
+                s.tags.append("build_up" if idx < len(selected) // 2 else "climax")
+
+        # 9. Build 6-Track NLE MultiTrackTimeline
+        mt_timeline = create_multitrack_timeline(
+            project_id=project_id,
+            title=intro_title,
+            duration_sec=target_duration,
+            aspect_ratio=fmt_config.aspect_ratio,
+        )
+        cur_t = 0.0
+        for s in selected:
+            mt_timeline.add_clip(
+                track_id="v1",
+                source_path=s.source_file,
+                timeline_in=cur_t,
+                duration=s.duration_sec,
+                source_in=s.start_sec,
+            )
+            cur_t += s.duration_sec
+
+        mt_timeline.add_clip("t1", source_path=intro_title, timeline_in=0.2, duration=2.5)
+        mt_timeline.add_clip("t1", source_path=outro_text, timeline_in=max(0.0, target_duration - 1.5), duration=1.5)
+        mt_timeline.save_project_json()
+
+        # 10. Save Editable Timeline JSON
         timeline_data = {
             "project_id": project_id,
             "style": style,
@@ -184,6 +219,7 @@ class EditingBrain:
             "transitions": transitions,
             "velocity_ramps": velocity_ramps,
             "beat_sync_events": beat_events,
+            "multitrack_project": f"{project_id}_multitrack.json",
             "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
