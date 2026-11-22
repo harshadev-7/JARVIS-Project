@@ -317,6 +317,10 @@ class ConversationalCortex:
                             f"Would you like to explore deeper into any specific aspect of {raw_topic}, {address}?"
                         )
 
+        # 10b. Guard against running web perception on imperative action commands
+        if re.match(r"(?i)^(play|open|launch|run|close|stop|pause|render|edit|cut|trim|start|watch|show)\b", q_clean):
+            return None
+
         # 11. Context-Aware Assistance Fallback (Clean, constructive, and conversational!)
         cleaned_topic = q_clean.rstrip("?.")
         if len(cleaned_topic) > 3:

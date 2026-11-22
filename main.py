@@ -218,10 +218,30 @@ async def handle_command(command: str, session_id: str) -> bool:
         task_str = arg if arg else "create autonomous viral video on trending tech"
         with console.status("[bold cyan]◈ JARVIS is curating viral content & synthesizing your video...[/bold cyan]", spinner="dots"):
             res = await agent.execute(task_str)
+        # Retain media context in Brain for natural language follow-up queries (e.g. "play that video")
+        try:
+            ctx = brain.get_context(session_id)
+            if res.data:
+                ctx.working_variables["last_created_media"] = res.data
+        except Exception:
+            pass
         console.print(Panel(
             res.summary,
             title="[bold green]JARVIS Autonomous Video & Viral Reel Creator[/bold green]",
             border_style="green",
+        ))
+        console.print()
+
+    elif cmd in ("/play", "/play_video", "/watch"):
+        from core.orchestrator.agent_registry import agent_registry
+        agent = agent_registry.get_agent("video_editing")
+        ctx = brain.get_context(session_id)
+        with console.status("[bold cyan]◈ Launching media player...[/bold cyan]", spinner="dots"):
+            res = await agent.execute("play that video", context=ctx.working_variables)
+        console.print(Panel(
+            res.summary,
+            title="[bold blue]JARVIS Media Player[/bold blue]",
+            border_style="blue",
         ))
         console.print()
 

@@ -82,6 +82,9 @@ class IntentRouter:
         r"\b(video\s+edit|edit\s+video|trim\s+video|cut\s+video|merge\s+video|concatenate\s+video)\b",
         r"\b(make\s+a\s+reel|create\s+short|vertical\s+video|sync\s+to\s+beat|highlight\s+reel)\b",
         r"\b(burn\s+subtitles|add\s+subtitles|export\s+video|video\s+timeline)\b",
+        r"\b(play|open|show|watch|listen\s+to|start)\s+(?:that\s+|the\s+|this\s+|my\s+)?(?:video|reel|audio|media|clip|track|short)\b",
+        r"\b(play|open|watch)\s+(?:that|this|it)\b",
+        r"^(?:play|open|launch)\s+(?:video|reel|clip)$",
     ]
     VISION_PATTERNS = [
         r"\b(image\s+classif|classif\w*\s+image|inspect\s+image|analyze\s+image|view\s+image)\b",

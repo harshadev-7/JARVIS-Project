@@ -269,11 +269,82 @@ class VideoEditingAgent(BaseAgent):
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentTaskResult:
+        from pathlib import Path
         from video_editor.video_editing_agent import video_editing_coordinator
         from video_editor.effects import SocialFormattingConfig
         from video_editor.exporter import ExportQuality
 
         ctx = context or {}
+        lower = task.lower()
+
+        # Check if playback or opening of recent media is requested
+        if any(w in lower for w in ["play", "open", "watch", "show", "launch", "listen"]):
+            last_media = ctx.get("last_created_media") or {}
+            video_file = None
+            audio_file = None
+            script_file = None
+
+            if last_media.get("output") and Path(last_media["output"]).exists():
+                video_file = Path(last_media["output"])
+            if last_media.get("audio") and Path(last_media["audio"]).exists():
+                audio_file = Path(last_media["audio"])
+            if last_media.get("script") and Path(last_media["script"]).exists():
+                script_file = Path(last_media["script"])
+
+            if not video_file and not audio_file:
+                out_dir = Path("output/videos")
+                if out_dir.exists():
+                    mp4s = sorted(out_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
+                    if mp4s:
+                        video_file = mp4s[0]
+                    wavs = sorted(out_dir.glob("*.wav"), key=lambda p: p.stat().st_mtime, reverse=True)
+                    if wavs:
+                        audio_file = wavs[0]
+                    bats = sorted(out_dir.glob("*.bat"), key=lambda p: p.stat().st_mtime, reverse=True)
+                    if bats:
+                        script_file = bats[0]
+
+            if video_file and video_file.exists():
+                import os, sys
+                if sys.platform == "win32":
+                    try:
+                        os.startfile(str(video_file))
+                    except Exception as e:
+                        log.warning(f"Could not open video file: {e}")
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="vid-play-01",
+                    success=True,
+                    data={"played": str(video_file)},
+                    summary=f"▶️ Opening video '{video_file.name}' in your default media player, sir.",
+                )
+            elif audio_file and audio_file.exists():
+                import os, sys
+                if sys.platform == "win32":
+                    try:
+                        os.startfile(str(audio_file))
+                    except Exception as e:
+                        log.warning(f"Could not open audio file: {e}")
+                script_msg = f" You can render the full MP4 video at any time by running `{script_file.name}` or installing FFmpeg." if script_file else ""
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="vid-play-audio-01",
+                    success=True,
+                    data={"played": str(audio_file)},
+                    summary=(
+                        f"▶️ Playing synthesized voiceover audio track: `{audio_file.name}` in your media player, sir.\n\n"
+                        f"[dim]Note: The finalized MP4 video has not been compiled yet because FFmpeg is not installed on this machine.{script_msg}[/dim]"
+                    ),
+                )
+            else:
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="vid-play-none",
+                    success=False,
+                    data={},
+                    summary="No recently generated video or audio track was found in `output/videos`. You can generate a new video anytime by typing `/reel <topic>`.",
+                )
+
         file_path = ctx.get("file_path") or ctx.get("video_path")
         
         # Check if task specifies an explicit video path

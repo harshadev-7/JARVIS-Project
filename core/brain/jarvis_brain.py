@@ -275,8 +275,10 @@ class JARVISBrain:
                 agent_used = "VideoEditingAgent"
                 from core.orchestrator.agent_registry import VideoEditingAgent
                 agent = VideoEditingAgent()
-                res = await agent.execute(decision.extracted_query or user_message)
-                reply_content = f"**Video Editing Operation:**\n{res.summary}"
+                res = await agent.execute(decision.extracted_query or user_message, context=context.working_variables)
+                if res.data and ("output" in res.data or "audio" in res.data or "script" in res.data):
+                    context.working_variables["last_created_media"] = res.data
+                reply_content = res.summary if res.summary.startswith("▶️") or res.summary.startswith("🎬") else f"**Video Editing Operation:**\n{res.summary}"
 
             elif decision.intent == IntentType.COMPUTER_VISION:
                 agent_used = "VisionAgent"

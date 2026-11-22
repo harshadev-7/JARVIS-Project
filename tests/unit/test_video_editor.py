@@ -306,3 +306,42 @@ async def test_autonomous_video_creator_without_source_sample(tmp_path):
     )
     assert task_res.success is True
     assert "Autonomous Video" in task_res.summary
+
+
+@pytest.mark.asyncio
+async def test_video_playback_routing_and_execution(tmp_path):
+    """Test that 'play that video than' is routed to VideoEditingAgent and executed."""
+    router = IntentRouter()
+    # 1. Test routing for conversational follow-ups and typos
+    queries = [
+        "play that video than",
+        "play that video then",
+        "open the video",
+        "play the reel",
+        "watch that video",
+    ]
+    for q in queries:
+        dec = router.route(q)
+        assert dec.intent == IntentType.VIDEO_EDITING
+        assert dec.needs_agent is True
+        assert dec.agent_name == "VideoEditingAgent"
+
+    # 2. Test VideoEditingAgent playback execution with synthesized audio/script
+    dummy_wav = tmp_path / "test_voice.wav"
+    dummy_wav.write_bytes(b"RIFF" + b"\x00" * 40)
+    dummy_bat = tmp_path / "render_test.bat"
+    dummy_bat.write_text("@echo off", encoding="utf-8")
+
+    agent = VideoEditingAgent()
+    play_res = await agent.execute(
+        "play that video than",
+        context={
+            "last_created_media": {
+                "audio": str(dummy_wav),
+                "script": str(dummy_bat),
+            }
+        },
+    )
+    assert play_res.success is True
+    assert "Playing synthesized voiceover audio track" in play_res.summary
+
