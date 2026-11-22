@@ -52,6 +52,7 @@ HELP_TEXT = """
   [yellow]/help[/yellow]       → Show this help menu
   [yellow]/solve <task>[/yellow]→ Execute 10-step reasoning & problem solving
   [yellow]/research <q>[/yellow]→ Deep internet research & knowledge indexing
+  [yellow]/reel <video>[/yellow]→ Autonomous 9:16 Reel creation with online trending research
   [yellow]/metrics[/yellow]    → Real-time CPU, RAM, & disk hardware telemetry
   [yellow]/memory[/yellow]     → Inspect persistent user profile & episodic memory
   [yellow]/agents[/yellow]     → Inspect all 15 specialized agents in the swarm
@@ -205,6 +206,23 @@ async def handle_command(command: str, session_id: str) -> bool:
             f"\n\n[dim]Indexed into JARVIS Knowledge Base: {'Yes (ID: ' + str(rep.knowledge_id) + ')' if rep.knowledge_indexed else 'No'}[/dim]",
             title="[bold blue]JARVIS Universal Research Report[/bold blue]",
             border_style="blue",
+        ))
+        console.print()
+
+    elif cmd.startswith("/reel") or cmd.startswith("/video"):
+        parts = command.split(maxsplit=1)
+        arg = parts[1].strip() if len(parts) > 1 else ""
+        if not arg:
+            console.print("[yellow]Usage:[/yellow] /reel <path_to_video.mp4> [trending <topic>]\n[dim]Example: /reel D:\\clips\\my_video.mp4 trending AI Agents[/dim]\n")
+            return True
+        from core.orchestrator.agent_registry import agent_registry
+        agent = agent_registry.get_agent("video_editing")
+        with console.status("[bold cyan]◈ JARVIS is searching trending content & formulating video edits...[/bold cyan]", spinner="dots"):
+            res = await agent.execute(arg)
+        console.print(Panel(
+            res.summary,
+            title="[bold green]JARVIS Video Editing & Trending Synthesis[/bold green]",
+            border_style="green",
         ))
         console.print()
 

@@ -286,13 +286,32 @@ class VideoEditingAgent(BaseAgent):
         if file_path:
             try:
                 meta = video_editing_coordinator.inspect_media(file_path)
-                # If reel / short requested
                 lower = task.lower()
-                if any(w in lower for w in ["reel", "short", "vertical", "9:16", "tiktok"]):
+
+                # Check if trending topic research is requested
+                subtitles = None
+                research_note = ""
+                if any(w in lower for w in ["trend", "trending", "research", "topic", "news", "about"]):
+                    import re
+                    topic_m = re.search(r"(?:trend(?:ing)?(?:\s+topic)?|topic|news|about|on)\s+['\"]?([^'\",\.\n]+)['\"]?", task, re.IGNORECASE)
+                    topic = topic_m.group(1).strip() if topic_m else "Artificial Intelligence"
+                    from services.internet.research_pipeline import research_pipeline
+                    rep = await research_pipeline.conduct_research(topic, max_sources=2)
+                    phrases = [f"Trending: {topic}"]
+                    for f in rep.key_findings[:2]:
+                        clean_f = f.split(":")[-1].strip() if ":" in f else f
+                        phrases.append(clean_f[:50])
+                    phrases.append("Follow for more updates!")
+                    subtitles = phrases
+                    research_note = f"\n• Researched Trending Topic: '{topic}'\n• Generated Subtitles: {len(phrases)} caption cards burned into video"
+
+                # If reel / short requested (or default to vertical reel for video tasks)
+                if any(w in lower for w in ["reel", "short", "vertical", "9:16", "tiktok", "trend", "edit"]):
                     res = video_editing_coordinator.create_short_or_reel(
                         video_path=file_path,
                         watermark_text=ctx.get("watermark", "JARVIS AI"),
                         blur_background=True,
+                        subtitles=subtitles,
                         quality=ExportQuality.SOCIAL_720P,
                     )
                     return AgentTaskResult(
@@ -300,7 +319,7 @@ class VideoEditingAgent(BaseAgent):
                         task_id="vid-reel-01",
                         success=res.success,
                         data={"output": res.output_path, "metadata": meta.__dict__},
-                        summary=f"Created 9:16 vertical reel configuration for {meta.filename}. Output: {res.output_path}",
+                        summary=f"Created 9:16 vertical reel configuration for {meta.filename}. Output: {res.output_path}{research_note}",
                     )
                 elif "highlight" in lower:
                     res = video_editing_coordinator.auto_highlight_reel(file_path)
