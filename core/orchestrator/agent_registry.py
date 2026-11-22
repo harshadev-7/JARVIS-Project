@@ -509,14 +509,66 @@ class CybersecurityMonitoringAgent(BaseAgent):
                 "defensive_intelligence",
                 "audit_logging",
                 "hardening_advisory",
+                "static_file_analysis",
+                "system_configuration_audit",
             ],
             required_autonomy_level=1,
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentTaskResult:
+        import re
         from services.security.intelligence import cybersecurity_intelligence_engine
 
-        # 1. Hardening checklist requests
+        # 1. Isolated static file analysis
+        if any(task.lower().startswith(prefix) for prefix in ["inspect file", "analyze file", "inspect ", "quarantine "]):
+            from services.security.laboratory import static_file_analyzer, report_generator
+            match = re.search(r"(?:inspect\s+file|analyze\s+file|inspect|quarantine)\s+(.+)", task, re.IGNORECASE)
+            target_file = match.group(1).strip().strip("\"'") if match else ""
+            try:
+                rep = static_file_analyzer.analyze_file(target_file)
+                formatted = report_generator.format_file_analysis_report(rep)
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="sec-file-01",
+                    success=True,
+                    data=rep.model_dump() if hasattr(rep, "model_dump") else rep.dict(),
+                    summary=formatted,
+                )
+            except Exception as e:
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="sec-file-01",
+                    success=False,
+                    error=str(e),
+                    summary=f"File inspection failed: {e}",
+                )
+
+        # 2. Safe local configuration audit
+        if any(task.lower().startswith(prefix) for prefix in ["audit system", "audit directory", "audit "]):
+            from services.security.laboratory import safe_system_auditor, authorization_gate, report_generator
+            match = re.search(r"(?:audit\s+system|audit\s+directory|audit)\s+(.+)", task, re.IGNORECASE)
+            target_dir = match.group(1).strip().strip("\"'") if match else "."
+            try:
+                authorization_gate.request_authorization(target_dir, authorized_by="agent_operator")
+                rep = safe_system_auditor.audit_target(target_dir)
+                formatted = report_generator.format_audit_report(rep)
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="sec-audit-01",
+                    success=True,
+                    data=rep.model_dump() if hasattr(rep, "model_dump") else rep.dict(),
+                    summary=formatted,
+                )
+            except Exception as e:
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="sec-audit-01",
+                    success=False,
+                    error=str(e),
+                    summary=f"System audit failed: {e}",
+                )
+
+        # 3. Hardening checklist requests
         if any(w in task.lower() for w in ["hardening", "checklist", "harden linux", "secure server"]):
             chk = cybersecurity_intelligence_engine.get_hardening_checklist("linux")
             steps_text = "\n".join([f"- **{s.title}** ({s.category}): `{s.verification_check}`" for s in chk.steps])
@@ -528,7 +580,7 @@ class CybersecurityMonitoringAgent(BaseAgent):
                 summary=f"### 🛡️ System Hardening Checklist: {chk.target_system}\n{steps_text}",
             )
 
-        # 2. General cybersecurity intelligence query
+        # 4. General cybersecurity intelligence query
         res = cybersecurity_intelligence_engine.query(task)
         return AgentTaskResult(
             agent_name=self.name,

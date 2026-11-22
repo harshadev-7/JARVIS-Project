@@ -64,6 +64,8 @@ HELP_TEXT = """
   [yellow]/folder <p>[/yellow] → Authorize a directory sandbox for verified file transfers
   [yellow]/secinfo <q>[/yellow]→ Query defensive cybersecurity intelligence & threat models
   [yellow]/cwe <id>[/yellow]   → Lookup CWE vulnerability definition & remediation guidance
+  [yellow]/audit <p>[/yellow]   → Safe non-destructive configuration audit on authorized path
+  [yellow]/inspect <f>[/yellow] → Safe static file quarantine inspection (entropy, hashes, magic)
   [yellow]/history[/yellow]    → Show conversation history
   [yellow]/clear[/yellow]      → Clear conversation memory
   [yellow]/status[/yellow]     → Show system status
@@ -78,7 +80,7 @@ COMMANDS = {
     "/help", "/solve", "/research", "/metrics", "/memory",
     "/agents", "/voice", "/history", "/clear", "/status",
     "/session", "/exit", "/quit", "/pair", "/devices", "/scan", "/folder",
-    "/secinfo", "/cwe"
+    "/secinfo", "/cwe", "/audit", "/inspect"
 }
 
 
@@ -422,6 +424,36 @@ async def handle_command(command: str, session_id: str) -> bool:
             border_style="green",
         ))
         console.print()
+
+    elif cmd.startswith("/audit"):
+        parts = command.split(maxsplit=1)
+        target = parts[1].strip() if len(parts) > 1 else "."
+        from services.security.laboratory import safe_system_auditor, authorization_gate, report_generator
+        try:
+            with console.status(f"[dim]Auditing configuration posture: {target}...[/dim]", spinner="dots"):
+                authorization_gate.request_authorization(target, authorized_by="user_cli")
+                report = safe_system_auditor.audit_target(target)
+            formatted = report_generator.format_audit_report(report)
+            console.print(Markdown(formatted))
+            console.print()
+        except Exception as e:
+            console.print(f"[bold red]Audit Rejected / Failed:[/bold red] {e}\n")
+
+    elif cmd.startswith("/inspect"):
+        parts = command.split(maxsplit=1)
+        target_f = parts[1].strip() if len(parts) > 1 else ""
+        if not target_f:
+            console.print("[yellow]Usage:[/yellow] /inspect <file_path>\n")
+            return True
+        from services.security.laboratory import static_file_analyzer, report_generator
+        try:
+            with console.status(f"[dim]Performing static quarantine inspection: {target_f}...[/dim]", spinner="dots"):
+                rep = static_file_analyzer.analyze_file(target_f)
+            formatted = report_generator.format_file_analysis_report(rep)
+            console.print(Markdown(formatted))
+            console.print()
+        except Exception as e:
+            console.print(f"[bold red]File Inspection Failed:[/bold red] {e}\n")
 
     else:
         token = command.split()[0]
