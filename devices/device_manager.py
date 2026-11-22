@@ -34,6 +34,12 @@ from devices.notification_sync import (
     NotificationSyncEngine,
     NotificationItem,
 )
+from devices.crypto_channel import CryptoChannel
+from devices.mutual_auth import mutual_authenticator, MutualAuthenticator, AuthChallenge, MutualAuthResult
+from devices.session_manager import session_manager, NetworkSessionManager, SessionRecord
+from devices.command_whitelist import command_gatekeeper, CommandWhitelistGatekeeper, RemoteCommandRequest, RemoteCommandResult
+from devices.connection_monitor import connection_monitor, ConnectionMonitor, PeerMetrics
+from devices.encrypted_transfer import encrypted_transfer_engine, EncryptedTransferEngine
 from core.logger import log
 
 
@@ -50,6 +56,11 @@ class DeviceManager:
         pairing=pairing_engine,
         transfer=file_transfer_engine,
         notification=notification_sync_engine,
+        mutual_auth=mutual_authenticator,
+        session_mgr=session_manager,
+        command_gate=command_gatekeeper,
+        monitor=connection_monitor,
+        encrypted_transfer=encrypted_transfer_engine,
     ):
         self.registry = registry
         self.sandbox = sandbox
@@ -59,6 +70,11 @@ class DeviceManager:
         self.pairing = pairing
         self.transfer = transfer
         self.notification = notification
+        self.mutual_auth = mutual_auth
+        self.session_mgr = session_mgr
+        self.command_gate = command_gate
+        self.monitor = monitor
+        self.encrypted_transfer = encrypted_transfer
 
     # ── 1. Pairing & Authentication ──────────────────────────────────────────
 
@@ -221,6 +237,66 @@ class DeviceManager:
         return self.registry.dispatch_remote_task(
             target_name_or_id=target_name_or_id, action=action, parameters=parameters
         )
+
+    # ── 9. Phase 22: Secure Networking & Mutual Authentication ───────────────
+
+    def issue_auth_challenge(self, device_id: str) -> Tuple[AuthChallenge, str]:
+        """Issue an ephemeral cryptographic challenge to a paired device."""
+        dev = self.find_device(device_id)
+        if not dev:
+            raise LookupError(f"Device '{device_id}' is not registered.")
+        master_key = self.mutual_auth.derive_device_master_key(dev.auth_token)
+        return self.mutual_auth.issue_challenge(dev.device_id, master_key)
+
+    def verify_auth_response(self, challenge_id: str, client_response_hex: str) -> MutualAuthResult:
+        """Verify client challenge response, register active session, and return ticket."""
+        res = self.mutual_auth.verify_response(challenge_id, client_response_hex)
+        if res.success and res.session_id and res.session_key_hex:
+            session_key = bytes.fromhex(res.session_key_hex)
+            self.session_mgr.register_session(
+                session_id=res.session_id,
+                device_id=res.device_id,
+                session_key=session_key,
+            )
+        return res
+
+    async def execute_remote_command(
+        self,
+        command_name: str,
+        device_id: str,
+        session_id: str,
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> RemoteCommandResult:
+        """Verify session validity and execute safe whitelisted remote command."""
+        session = self.session_mgr.get_session(session_id)
+        if not session or session.device_id != device_id:
+            return RemoteCommandResult(
+                success=False,
+                command_name=command_name,
+                error="Authentication failed: Invalid or expired network session.",
+            )
+
+        self.session_mgr.touch_session(session_id)
+        req = RemoteCommandRequest(
+            command_name=command_name,
+            device_id=device_id,
+            session_id=session_id,
+            parameters=parameters or {},
+        )
+        return await self.command_gate.execute_command(req)
+
+    def record_peer_heartbeat(self, device_id: str, rtt_ms: Optional[float] = None) -> PeerMetrics:
+        """Record live latency and presence telemetry for connected peer."""
+        self.heartbeat(device_id)
+        return self.monitor.record_heartbeat(device_id, rtt_ms=rtt_ms)
+
+    def get_peer_telemetry(self) -> List[PeerMetrics]:
+        """List live connection metrics across active peer network."""
+        return self.monitor.list_all_metrics()
+
+    def revoke_session(self, session_id: str) -> bool:
+        """Instantly terminate an active encrypted session."""
+        return self.session_mgr.revoke_session(session_id)
 
 
 device_manager = DeviceManager()

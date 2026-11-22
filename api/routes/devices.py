@@ -70,6 +70,22 @@ class InitiateTransferRequest(BaseModel):
     target_folder: str
 
 
+class ChallengeRequest(BaseModel):
+    device_id: str
+
+
+class VerifyChallengeRequest(BaseModel):
+    challenge_id: str
+    client_response_hex: str
+
+
+class ExecuteCommandRequest(BaseModel):
+    command_name: str
+    device_id: str
+    session_id: str
+    parameters: Dict[str, Any] = Field(default_factory=dict)
+
+
 # ── Phase 7 Compatible Endpoints ─────────────────────────────────────────────
 
 @router.post("/pairing-code", response_model=PairingCodeResponse, summary="Generate a 6-digit one-time device pairing code")
@@ -216,3 +232,61 @@ async def initiate_file_transfer(request: InitiateTransferRequest):
         return transfer
     except (ValueError, PermissionError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ── Phase 22 Secure Networking & Mutual Authentication Endpoints ─────────────
+
+@router.post("/auth/challenge", summary="Issue mutual challenge for a paired device")
+async def issue_device_challenge(request: ChallengeRequest):
+    try:
+        challenge_obj, challenge_hex = device_manager.issue_auth_challenge(request.device_id)
+        return {
+            "challenge_id": challenge_obj.challenge_id,
+            "device_id": challenge_obj.device_id,
+            "challenge_data": challenge_hex,
+            "expires_at": challenge_obj.expires_at.isoformat(),
+        }
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/auth/verify", summary="Verify challenge response and receive session credentials")
+async def verify_device_challenge(request: VerifyChallengeRequest):
+    result = device_manager.verify_auth_response(
+        challenge_id=request.challenge_id,
+        client_response_hex=request.client_response_hex,
+    )
+    if not result.success:
+        raise HTTPException(status_code=401, detail=result.error)
+    return {
+        "status": "authenticated",
+        "session_id": result.session_id,
+        "device_id": result.device_id,
+    }
+
+
+@router.post("/sessions/{session_id}/revoke", summary="Immediately revoke an active network session")
+async def revoke_session(session_id: str):
+    revoked = device_manager.revoke_session(session_id)
+    if not revoked:
+        raise HTTPException(status_code=404, detail="Session not found or already revoked.")
+    return {"status": "revoked", "session_id": session_id}
+
+
+@router.get("/telemetry", summary="Fetch real-time connection watchdog and peer metrics")
+async def get_network_telemetry():
+    metrics = device_manager.get_peer_telemetry()
+    return {"peers": [m.dict() if hasattr(m, "dict") else m.model_dump() for m in metrics]}
+
+
+@router.post("/command/execute", summary="Execute a safe whitelisted remote command")
+async def execute_remote_command(request: ExecuteCommandRequest):
+    res = await device_manager.execute_remote_command(
+        command_name=request.command_name,
+        device_id=request.device_id,
+        session_id=request.session_id,
+        parameters=request.parameters,
+    )
+    if not res.success:
+        raise HTTPException(status_code=400, detail=res.error)
+    return res

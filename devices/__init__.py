@@ -65,6 +65,44 @@ from devices.device_agent import (
     DeviceAgent,
 )
 
+from devices.crypto_channel import (
+    CryptoChannel,
+    CryptoChannelError,
+    ReplayAttackError,
+    TamperDetectedError,
+)
+
+from devices.mutual_auth import (
+    MutualAuthenticator,
+    mutual_authenticator,
+    AuthChallenge,
+    MutualAuthResult,
+)
+
+from devices.session_manager import (
+    NetworkSessionManager,
+    session_manager,
+    SessionRecord,
+)
+
+from devices.command_whitelist import (
+    CommandWhitelistGatekeeper,
+    command_gatekeeper,
+    RemoteCommandRequest,
+    RemoteCommandResult,
+)
+
+from devices.connection_monitor import (
+    ConnectionMonitor,
+    connection_monitor,
+    PeerMetrics,
+)
+
+from devices.encrypted_transfer import (
+    EncryptedTransferEngine,
+    encrypted_transfer_engine,
+)
+
 __all__ = [
     # Core Coordinator
     "DeviceManager",
@@ -103,4 +141,25 @@ __all__ = [
     "NotificationSyncEngine",
     "notification_sync_engine",
     "NotificationItem",
+    # Phase 22 Secure Networking
+    "CryptoChannel",
+    "CryptoChannelError",
+    "ReplayAttackError",
+    "TamperDetectedError",
+    "MutualAuthenticator",
+    "mutual_authenticator",
+    "AuthChallenge",
+    "MutualAuthResult",
+    "NetworkSessionManager",
+    "session_manager",
+    "SessionRecord",
+    "CommandWhitelistGatekeeper",
+    "command_gatekeeper",
+    "RemoteCommandRequest",
+    "RemoteCommandResult",
+    "ConnectionMonitor",
+    "connection_monitor",
+    "PeerMetrics",
+    "EncryptedTransferEngine",
+    "encrypted_transfer_engine",
 ]
