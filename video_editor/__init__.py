@@ -20,6 +20,7 @@ from video_editor.subtitles import SubtitleEntry, SubtitleManager, subtitle_mana
 from video_editor.effects import SocialFormattingConfig, VideoEffectsEngine, effects_engine
 from video_editor.exporter import ExportQuality, ExportResult, QualityProfile, VideoExporter, video_exporter
 from video_editor.video_editing_agent import VideoEditingCoordinator, video_editing_coordinator
+from video_editor.autonomous_creator import ViralStoryBrief, TrendingTopicCurator, AutonomousVideoCreator, autonomous_video_creator
 
 __all__ = [
     "MediaSafetyError",
@@ -50,4 +51,8 @@ __all__ = [
     "video_exporter",
     "VideoEditingCoordinator",
     "video_editing_coordinator",
+    "ViralStoryBrief",
+    "TrendingTopicCurator",
+    "AutonomousVideoCreator",
+    "autonomous_video_creator",
 ]

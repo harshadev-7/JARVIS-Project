@@ -341,6 +341,38 @@ class VideoEditingAgent(BaseAgent):
             except Exception as e:
                 log.warning(f"Video agent execution encountered error: {e}")
 
+        # When NO source video file is provided: Autonomous Faceless Video Generation!
+        lower = task.lower()
+        if any(w in lower for w in ["create", "generate", "make", "autonomous", "viral", "trend", "reel", "video", "short"]):
+            from video_editor.autonomous_creator import autonomous_video_creator
+            import re
+            topic_m = re.search(r"(?:about|on|topic|trend(?:ing)?)\s+['\"]?([^'\",\.\n]+)['\"]?", task, re.IGNORECASE)
+            chosen_topic = topic_m.group(1).strip() if topic_m else None
+            # Check for custom save folder in task or context
+            save_m = re.search(r"(?:save(?:\s+to)?|output(?:\s+to)?|folder|dir(?:ectory)?)\s+['\"]?([A-Za-z]:\\[^'\"\n]+)['\"]?", task, re.IGNORECASE)
+            custom_save = save_m.group(1).strip() if save_m else (ctx.get("save_dir") or ctx.get("output_dir"))
+
+            res = await autonomous_video_creator.create_autonomous_video(
+                topic=chosen_topic,
+                save_directory=custom_save,
+                watermark_text=ctx.get("watermark", "JARVIS AI"),
+                include_voiceover=True,
+            )
+            return AgentTaskResult(
+                agent_name=self.name,
+                task_id="vid-auto-01",
+                success=res.success,
+                data={
+                    "output": res.output_path,
+                    "script": res.script_path,
+                    "aspect_ratio": "9:16",
+                    "resolution": "1080x1920",
+                    "fps": 30,
+                    "target": "Shorts/Reels",
+                },
+                summary=res.message,
+            )
+
         specs = {"aspect_ratio": "9:16", "resolution": "1080x1920", "fps": 30, "target": "Shorts/Reels", "engine": "Phase19_VideoEditor"}
         return AgentTaskResult(
             agent_name=self.name,

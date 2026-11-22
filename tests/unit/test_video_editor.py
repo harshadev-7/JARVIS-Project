@@ -270,3 +270,39 @@ def test_router_video_editing_intent():
         assert decision.intent == IntentType.VIDEO_EDITING
         assert decision.needs_agent is True
         assert decision.agent_name == "VideoEditingAgent"
+
+
+@pytest.mark.asyncio
+async def test_autonomous_video_creator_without_source_sample(tmp_path):
+    """Test generating a 100% autonomous video with auto-curated viral trending content."""
+    from video_editor.autonomous_creator import TrendingTopicCurator, AutonomousVideoCreator, ViralStoryBrief
+
+    curator = TrendingTopicCurator()
+    # 1. Autonomous topic selection
+    brief = await curator.pick_or_research_topic()
+    assert isinstance(brief, ViralStoryBrief)
+    assert len(brief.topic) > 0
+    assert len(brief.hook) > 0
+    assert len(brief.bullet_points) == 3
+    assert len(brief.subtitle_entries) == 5
+
+    # 2. Autonomous video synthesis to custom save folder
+    custom_out = tmp_path / "custom_reels"
+    creator = AutonomousVideoCreator()
+    result = await creator.create_autonomous_video(
+        topic="Autonomous AI Agents",
+        save_directory=custom_out,
+        watermark_text="JARVIS AI",
+    )
+    assert result.success is True
+    assert custom_out.exists()
+    assert "Autonomous Video" in result.message
+
+    # 3. Test VideoEditingAgent invocation without any source file
+    agent = VideoEditingAgent()
+    task_res = await agent.execute(
+        "create a viral video on trending tech",
+        context={"save_dir": str(custom_out)},
+    )
+    assert task_res.success is True
+    assert "Autonomous Video" in task_res.summary
