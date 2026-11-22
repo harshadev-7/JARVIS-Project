@@ -25,6 +25,7 @@ class IntentType(str, Enum):
     MEMORY_STORE = "memory_store"
     MEMORY_QUERY = "memory_query"
     VIDEO_EDITING = "video_editing"
+    COMPUTER_VISION = "computer_vision"
     GENERAL_CONVERSATION = "general_conversation"
 
 
@@ -81,6 +82,11 @@ class IntentRouter:
         r"\b(video\s+edit|edit\s+video|trim\s+video|cut\s+video|merge\s+video|concatenate\s+video)\b",
         r"\b(make\s+a\s+reel|create\s+short|vertical\s+video|sync\s+to\s+beat|highlight\s+reel)\b",
         r"\b(burn\s+subtitles|add\s+subtitles|export\s+video|video\s+timeline)\b",
+    ]
+    VISION_PATTERNS = [
+        r"\b(image\s+classif|classif\w*\s+image|inspect\s+image|analyze\s+image|view\s+image)\b",
+        r"\b(ocr|extract\s+text|read\s+text\s+from|scan\s+text|detect\s+objects|bounding\s+box)\b",
+        r"\b(visual\s+search|reverse\s+image|scene\s+understand|image\s+quality|smart\s+crop|auto\s+frame)\b",
     ]
     MEMORY_QUERY_PATTERNS = [
         r"\b(what do you know about me|who am i|who i am|what is my name|what's my name)\b",
@@ -177,6 +183,19 @@ class IntentRouter:
                 confidence=0.92,
                 needs_agent=True,
                 agent_name="VideoEditingAgent",
+                extracted_query=query or text,
+            )
+
+        # 5c. Computer Vision & Visual Intelligence
+        if lower.startswith("/vision") or lower.startswith("/ocr") or lower.startswith("/image") or any(
+            re.search(p, lower) for p in self.VISION_PATTERNS
+        ):
+            query = re.sub(r"^/(vision|ocr|image)\s*", "", text).strip()
+            return RoutingDecision(
+                intent=IntentType.COMPUTER_VISION,
+                confidence=0.92,
+                needs_agent=True,
+                agent_name="VisionAgent",
                 extracted_query=query or text,
             )
 

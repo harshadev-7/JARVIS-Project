@@ -278,6 +278,12 @@ class JARVISBrain:
                 res = await agent.execute(decision.extracted_query or user_message)
                 reply_content = f"**Video Editing Operation:**\n{res.summary}"
 
+            elif decision.intent == IntentType.COMPUTER_VISION:
+                agent_used = "VisionAgent"
+                from vision.vision_agent import vision_agent
+                res = await vision_agent.execute(decision.extracted_query or user_message)
+                reply_content = f"**Visual Intelligence Analysis:**\n{res.summary}"
+
             elif decision.intent == IntentType.RESEARCH:
                 agent_used = "ResearchAgent"
                 from services.internet.research_pipeline import research_pipeline

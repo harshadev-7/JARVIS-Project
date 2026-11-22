@@ -443,10 +443,11 @@ class TaskPlanningAgent(BaseAgent):
 
 
 class AgentRegistry:
-    """Registry managing all 15 specialized agents."""
+    """Registry managing the 15 Section 3 core agents plus advanced expansion agents."""
 
     def __init__(self):
-        self._agents: Dict[str, BaseAgent] = {
+        from vision.vision_agent import VisionAgent
+        self._core_agents: Dict[str, BaseAgent] = {
             "research": ResearchAgent(),
             "problem_solving": ProblemSolvingAgent(),
             "programming": ProgrammingAgent(),
@@ -463,14 +464,25 @@ class AgentRegistry:
             "communication": CommunicationAgent(),
             "task_planning": TaskPlanningAgent(),
         }
+        self._expansion_agents: Dict[str, BaseAgent] = {
+            "vision": VisionAgent(),
+        }
 
     def get_agent(self, name: str) -> Optional[BaseAgent]:
-        """Fetch agent by key."""
+        """Fetch agent by key across core and expansion agents."""
         clean = name.lower().replace("agent", "").strip("_ ")
-        return self._agents.get(clean) or self._agents.get(name)
+        return (
+            self._core_agents.get(clean)
+            or self._expansion_agents.get(clean)
+            or self._core_agents.get(name)
+            or self._expansion_agents.get(name)
+        )
 
-    def list_all(self) -> List[Dict[str, Any]]:
-        """Return metadata for all 15 agents."""
+    def list_all(self, include_expansions: bool = False) -> List[Dict[str, Any]]:
+        """Return metadata for the 15 core agents (or include expansion agents)."""
+        pool = dict(self._core_agents)
+        if include_expansions:
+            pool.update(self._expansion_agents)
         return [
             {
                 "id": k,
@@ -479,12 +491,12 @@ class AgentRegistry:
                 "capabilities": a.capabilities,
                 "required_autonomy_level": a.required_autonomy_level,
             }
-            for k, a in self._agents.items()
+            for k, a in pool.items()
         ]
 
     def list_agents(self) -> List[BaseAgent]:
-        """Return list of all registered BaseAgent instances."""
-        return list(self._agents.values())
+        """Return list of registered BaseAgent instances."""
+        return list(self._core_agents.values())
 
 
 agent_registry = AgentRegistry()
