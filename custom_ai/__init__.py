@@ -52,6 +52,24 @@ from .tokenizer import TextTokenizer
 from .bpe_tokenizer import BPETokenizer
 from .trainer import LanguageModelTrainer, TinyLanguageModelTrainer, detect_system_resources
 from .transformer import FeedForward, TransformerDecoderBlock
+from .research import (
+    AdvancedDecoderBlock,
+    AdvancedModelConfig,
+    AdvancedTransformer,
+    AttentionAnalyzer,
+    EvaluationResult,
+    ExperimentTracker,
+    GroupedQueryAttention,
+    KVCache,
+    ModelComparator,
+    ModelEvaluator,
+    ModelOptimizer,
+    RMSNorm,
+    RotaryPositionalEmbedding,
+    SwiGLU,
+    TruthfulnessGuard,
+    experiment_tracker,
+)
 
 def run_inference(*args, **kwargs):
     from .inference_cli.run_inference import main as _main
@@ -89,4 +107,20 @@ __all__ = [
     "detect_system_resources",
     "load_corpus_file",
     "split_train_val",
+    "RMSNorm",
+    "SwiGLU",
+    "RotaryPositionalEmbedding",
+    "GroupedQueryAttention",
+    "KVCache",
+    "AttentionAnalyzer",
+    "AdvancedModelConfig",
+    "AdvancedDecoderBlock",
+    "AdvancedTransformer",
+    "ModelOptimizer",
+    "EvaluationResult",
+    "ModelEvaluator",
+    "TruthfulnessGuard",
+    "ModelComparator",
+    "ExperimentTracker",
+    "experiment_tracker",
 ]

@@ -66,6 +66,7 @@ HELP_TEXT = """
   [yellow]/cwe <id>[/yellow]   → Lookup CWE vulnerability definition & remediation guidance
   [yellow]/audit <p>[/yellow]   → Safe non-destructive configuration audit on authorized path
   [yellow]/inspect <f>[/yellow] → Safe static file quarantine inspection (entropy, hashes, magic)
+  [yellow]/neural-research[/yellow]→ Run neural architecture benchmark (Baseline MHA vs Advanced GQA+RoPE)
   [yellow]/history[/yellow]    → Show conversation history
   [yellow]/clear[/yellow]      → Clear conversation memory
   [yellow]/status[/yellow]     → Show system status
@@ -80,7 +81,7 @@ COMMANDS = {
     "/help", "/solve", "/research", "/metrics", "/memory",
     "/agents", "/voice", "/history", "/clear", "/status",
     "/session", "/exit", "/quit", "/pair", "/devices", "/scan", "/folder",
-    "/secinfo", "/cwe", "/audit", "/inspect"
+    "/secinfo", "/cwe", "/audit", "/inspect", "/neural-research", "/model-compare"
 }
 
 
@@ -454,6 +455,48 @@ async def handle_command(command: str, session_id: str) -> bool:
             console.print()
         except Exception as e:
             console.print(f"[bold red]File Inspection Failed:[/bold red] {e}\n")
+
+    elif cmd.startswith("/neural-research") or cmd.startswith("/model-compare"):
+        import torch
+        from custom_ai.research import (
+            AdvancedModelConfig,
+            AdvancedTransformer,
+            ModelComparator,
+        )
+        from custom_ai.model import DecoderOnlyTransformer
+
+        console.print("\n[bold blue]JARVIS:[/bold blue] Initiating neural architecture benchmark (Baseline MHA vs Advanced GQA+RoPE+RMSNorm)...\n")
+        try:
+            with console.status("[dim]Benchmarking parameters, latency, and perplexity...[/dim]", spinner="dots"):
+                cfg_base = {"vocab_size": 256, "embed_dim": 64, "num_layers": 2, "num_heads": 4, "max_seq_len": 64}
+                m_base = DecoderOnlyTransformer(**cfg_base)
+
+                cfg_adv = AdvancedModelConfig(
+                    vocab_size=256,
+                    embed_dim=64,
+                    num_layers=2,
+                    num_heads=4,
+                    num_kv_heads=2,
+                    norm_type="rms_norm",
+                    activation_type="swiglu",
+                    pos_encoding="rope",
+                    max_seq_len=64,
+                )
+                m_adv = AdvancedTransformer(cfg_adv)
+
+                test_seq = torch.randint(0, 256, (2, 32), dtype=torch.long)
+                comp = ModelComparator.compare_models(
+                    model_a=m_base,
+                    model_b=m_adv,
+                    name_a="Baseline-MHA",
+                    name_b="Advanced-GQA-RoPE",
+                    eval_data=test_seq,
+                )
+
+            console.print(Markdown(comp["scorecard_markdown"]))
+            console.print()
+        except Exception as e:
+            console.print(f"[bold red]Neural Research Benchmark Failed:[/bold red] {e}\n")
 
     else:
         token = command.split()[0]
