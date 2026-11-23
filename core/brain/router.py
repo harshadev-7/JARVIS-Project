@@ -107,8 +107,16 @@ class IntentRouter:
     CODE_PATTERNS = [
         r"\b(?:give\s+me\s+(?:a\s+)?code|write\s+(?:a\s+)?(?:code|program|script|function)|create\s+(?:a\s+)?(?:program|script|code)|show\s+me\s+(?:a\s+)?code)\b",
         r"\b(?:in\s+java|in\s+python|in\s+c\+\+|in\s+c\#|in\s+javascript|in\s+golang|in\s+rust|in\s+c\b|java\s+program|python\s+program|c\+\+\s+program)\b",
-        r"\b(?:addition\s+of\s+two\s+numbers|addition\s+two\s+program|add\s+two\s+numbers|reverse\s+a\s+string|check\s+palindrome|palindrome|inheritance|sorting|fibonacci)\b",
+        r"\b(?:addition\s+of\s+two\s+numbers|addition\s+two\s+program|add\s+two\s+numbers|reverse\s+a\s+string|check\s+palindrome|palindrome|sorting|fibonacci)\b",
         r"\b(?:code|syntax|debug|function|class|script|def |import |public\s+class)\b",
+    ]
+
+    # 6b. Knowledge Question Answering Patterns
+    KNOWLEDGE_PATTERNS = [
+        r"\b(?:what\s+is\s+(?:an?\s+|the\s+)?(?:ai|artificial\s+intelligence|machine\s+learning|ml|java|python|operating\s+system|os|database|dbms|algorithm|computer\s+network|networking|ram))\b",
+        r"\b(?:what\s+is\s+the\s+difference\s+between|difference\s+between|compare\s+\w+\s+and\s+\w+)\b",
+        r"\b(?:explain\s+(?:the\s+previous\s+answer\s+in\s+)?(?:simpler|simple)\s+words|explain\s+in\s+simple\s+words)\b",
+        r"\b(?:explain\s+(?:java\s+)?inheritance|explain\s+(?:polymorphism|machine\s+learning|artificial\s+intelligence|ai))\b",
     ]
 
     # 7. Document Summarization
@@ -157,10 +165,13 @@ class IntentRouter:
         r"\b(video\s+edit|edit\s+video|trim\s+video|cut\s+video|merge\s+video|concatenate\s+video)\b",
         r"\b(make\s+a\s+reel|create\s+short|vertical\s+video|sync\s+to\s+beat|highlight\s+reel)\b",
         r"\b(burn\s+subtitles|add\s+subtitles|export\s+video|video\s+timeline)\b",
+        r"\b(?:play|open|watch)\s+(?:that|the)\s+video(?:\s+(?:then|than))?\b",
+        r"\b(?:play\s+the\s+reel|watch\s+that\s+video)\b",
     ]
     VISION_PATTERNS = [
-        r"\b(image\s+classif|classif\w*\s+image|inspect\s+image|analyze\s+image|view\s+image)\b",
-        r"\b(ocr|extract\s+text|read\s+text\s+from|scan\s+text|detect\s+objects|bounding\s+box)\b",
+        r"^/(?:vision|ocr)\b",
+        r"\b(image\s+classif|classif\w*\s+image|inspect\s+image|analyze\s+(?:this\s+)?image|view\s+image)\b",
+        r"\b(ocr|extract\s+text|read\s+text\s+from|scan\s+text|detect\s+objects|bounding\s+box|visual\s+search)\b",
     ]
     CYBERSECURITY_PATTERNS = [
         r"\b(cwe-\d+|cve-\d+|vulnerability|cybersecurity|hardening|owasp|sql injection|xss|csrf|ssrf|zero trust|dnssec|tls 1\.3|syn flood|privilege escalation)\b",
@@ -169,6 +180,8 @@ class IntentRouter:
         r"\b(what do you know about me|who am i|who i am|what is my name|what's my name)\b",
         r"\b(?:tell|recall|repeat)\s+(?:me\s+)?my\s+name\b",
         r"\bmy\s+profile\b",
+        r"\btell\s+about\s+me\b",
+        r"\babout\s+me\b",
     ]
     MEMORY_STORE_PATTERNS = [
         r"\bmy name is\s+[A-Za-z]+\b",
@@ -219,6 +232,28 @@ class IntentRouter:
                 needs_agent=False,
                 agent_name="DeductiveSolver",
                 extracted_query=inner_query,
+            )
+
+        # Handle explicit /research prefix: dispatch directly to internet research
+        if lower.startswith("/research"):
+            inner_query = re.sub(r"^/research\s*", "", text).strip()
+            return RoutingDecision(
+                intent=IntentType.INTERNET_RESEARCH,
+                confidence=0.99,
+                needs_agent=True,
+                agent_name="ResearchAgent",
+                extracted_query=inner_query or text,
+            )
+
+        # Handle explicit /vision or /ocr prefix
+        if lower.startswith("/vision") or lower.startswith("/ocr"):
+            inner_query = re.sub(r"^/(?:vision|ocr)\s*", "", text).strip()
+            return RoutingDecision(
+                intent=IntentType.COMPUTER_VISION,
+                confidence=0.98,
+                needs_agent=True,
+                agent_name="VisionAgent",
+                extracted_query=inner_query or text,
             )
 
         # Multi-turn Context Evaluation:
@@ -288,6 +323,22 @@ class IntentRouter:
                 confidence=0.92,
                 needs_agent=False,
                 agent_name="CreativeEngine",
+                extracted_query=text,
+            )
+
+        # 4b. Knowledge Questions & Conceptual Explanations
+        is_knowledge_question = (
+            any(re.search(p, lower) for p in self.KNOWLEDGE_PATTERNS)
+            or bool(re.search(r"\bwhat\s+is\s+(?:an?\s+|the\s+)?(ai|machine learning|java|python|operating system|database|algorithm|computer network)\b", lower))
+            or ("difference between" in lower and any(w in lower for w in ["ai", "machine learning", "java", "python", "ram"]))
+            or any(w in lower for w in ["simpler words", "simple words", "explain inheritance", "what is an ai", "what is ai"])
+        )
+        if is_knowledge_question and not any(w in lower for w in ["give me a code", "write a code", "write a program"]):
+            return RoutingDecision(
+                intent=IntentType.KNOWLEDGE_QUESTION,
+                confidence=0.96,
+                needs_agent=False,
+                agent_name="KnowledgeEngine",
                 extracted_query=text,
             )
 

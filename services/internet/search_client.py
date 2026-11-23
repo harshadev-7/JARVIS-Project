@@ -155,14 +155,48 @@ class SearchClient:
             except Exception as e:
                 log.warning(f"DuckDuckGo HTML search error: {e}")
 
-        # If zero direct instant answers, return structured research query placeholder
+        # 3. Fallback: Query Wikipedia OpenSearch API
+        if len(results) < max_results:
+            try:
+                wiki_url = "https://en.wikipedia.org/w/api.php"
+                wiki_params = {
+                    "action": "opensearch",
+                    "search": query,
+                    "limit": max_results,
+                    "format": "json",
+                }
+                async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=headers) as client:
+                    resp = await client.get(wiki_url, params=wiki_params)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if len(data) >= 4:
+                            titles = data[1]
+                            descs = data[2]
+                            urls = data[3]
+                            for t, d, u in zip(titles, descs, urls):
+                                if u and u.startswith("http"):
+                                    results.append(
+                                        SearchResult(
+                                            title=f"{t} (Wikipedia)",
+                                            url=u,
+                                            snippet=d or f"Encyclopedic entry for {t}.",
+                                            source="wikipedia_opensearch",
+                                        )
+                                    )
+                                if len(results) >= max_results:
+                                    break
+            except Exception as e:
+                log.debug(f"SearchClient Wikipedia fallback notice: {e}")
+
         if not results:
+            import urllib.parse
+            clean_q = urllib.parse.quote_plus(query)
             results.append(
                 SearchResult(
-                    title=f"Research on: {query}",
-                    url=f"https://html.duckduckgo.com/html/?q={query}",
-                    snippet=f"Synthesized query topic: '{query}'. Consult official documentation or external sources.",
-                    source="web_query",
+                    title=f"Search Query: {query}",
+                    url=f"https://duckduckgo.com/?q={clean_q}",
+                    snippet=f"DuckDuckGo search index reference for '{query}'.",
+                    source="duckduckgo_query",
                 )
             )
 

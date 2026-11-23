@@ -339,7 +339,7 @@ class JARVISBrain:
                     reply_content = f"{cycle.step_10_final_report}\n\n*[SOURCE: REASONED | 10-Step Cycle]*"
 
             elif decision.intent in (IntentType.MATHEMATICAL_PROBLEM, IntentType.MATH):
-                agent_used = "DeductiveSolver"
+                agent_used = "MathematicalAgent"
                 from core.planner.deductive_solver import deductive_solver
                 sol = deductive_solver.solve_problem(decision.extracted_query or user_message)
                 if sol and sol.get("solution"):
@@ -377,22 +377,32 @@ class JARVISBrain:
                     )
 
             elif decision.intent in (IntentType.GENERAL_QUESTION, IntentType.KNOWLEDGE_QUESTION):
-                agent_used = "DeductiveSolver"
+                from core.knowledge.knowledge_engine import knowledge_engine
                 from core.planner.deductive_solver import deductive_solver
-                sol = deductive_solver.solve_problem(user_message)
-                if sol and sol.get("solution"):
-                    reply_content = f"{sol['solution']}\n\n*[SOURCE: KNOWN | Internal Knowledge]*"
+
+                assistant_turns = [t.content for t in context.turns if t.role == "assistant"]
+                prev_text = assistant_turns[-1] if assistant_turns else None
+                know_ans = knowledge_engine.answer_question(decision.extracted_query or user_message, previous_context=prev_text)
+                if know_ans and know_ans.get("answer"):
+                    agent_used = "KnowledgeEngine"
+                    reply_content = f"{know_ans['answer']}\n\n*[SOURCE: KNOWN | Knowledge Engine]*"
                 else:
-                    from knowledge.rag_engine import rag_engine
-                    rag_ctx = await rag_engine.retrieve(user_message, top_k=2)
-                    if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
-                        reply_content = (
-                            f"Based on my verified offline knowledge repository:\n\n"
-                            + "\n\n".join([f"**{e.title}** ({e.category.upper()}):\n{e.content}" for e in rag_ctx.entries])
-                            + "\n\n*[SOURCE: KNOWN | Local RAG]*"
-                        )
+                    sol = deductive_solver.solve_problem(decision.extracted_query or user_message)
+                    if sol and sol.get("solution"):
+                        agent_used = "DeductiveSolver"
+                        reply_content = f"{sol['solution']}\n\n*[SOURCE: KNOWN | Internal Knowledge]*"
                     else:
-                        reply_content = f"**Answer:**\n{user_message.strip()} is processed through verified offline intelligence.\n\n*[SOURCE: KNOWN]*"
+                        agent_used = "RAGEngine"
+                        from knowledge.rag_engine import rag_engine
+                        rag_ctx = await rag_engine.retrieve(user_message, top_k=2)
+                        if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
+                            reply_content = (
+                                f"Based on my verified offline knowledge repository:\n\n"
+                                + "\n\n".join([f"**{e.title}** ({e.category.upper()}):\n{e.content}" for e in rag_ctx.entries])
+                                + "\n\n*[SOURCE: KNOWN | Local RAG]*"
+                            )
+                        else:
+                            reply_content = f"**Answer:**\n{user_message.strip()} is processed through verified offline intelligence.\n\n*[SOURCE: KNOWN]*"
 
             elif decision.intent == IntentType.PROBLEM_SOLVING:
                 agent_used = "DeductiveSolver"
