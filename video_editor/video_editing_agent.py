@@ -175,6 +175,28 @@ class VideoEditingCoordinator:
             "cuts_count": len(aligned),
         }
 
+    def autoclip_highlights(
+        self,
+        video_path: str | Path,
+        srt_path: Optional[str | Path] = None,
+        vertical: bool = True,
+        min_score: float = 0.65,
+        max_clips: int = 5,
+        burn_subtitles: bool = False,
+        create_compilation: bool = True,
+    ) -> Any:
+        """Autonomously extracts viral short clips and highlights using the AutoClip engine."""
+        from video_editor.autoclip import autoclip_engine
+        return autoclip_engine.process_video(
+            video_path=video_path,
+            srt_path=srt_path,
+            vertical=vertical,
+            min_score=min_score,
+            max_clips=max_clips,
+            burn_subtitles=burn_subtitles,
+            create_compilation=create_compilation,
+        )
+
 
 video_editing_coordinator = VideoEditingCoordinator()
 

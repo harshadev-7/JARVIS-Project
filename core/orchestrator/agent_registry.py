@@ -356,6 +356,46 @@ class VideoEditingAgent(BaseAgent):
             if m:
                 file_path = m.group(1)
 
+        # AutoClip Long-to-Short highlight extraction
+        if any(w in lower for w in ["autoclip", "auto clip", "extract clips", "extract shorts", "viral clips", "highlight clips"]):
+            from video_editor.autoclip import autoclip_engine
+            import re
+            m_vid = re.search(r"['\"]?([A-Za-z]:\\[^'\"\n]+|\b[\w\-_\.]+\.(?:mp4|mov|avi|mkv|webm))\b", task)
+            target_vid = m_vid.group(1) if m_vid else file_path
+            m_srt = re.search(r"['\"]?([A-Za-z]:\\[^'\"\n]+|\b[\w\-_\.]+\.(?:srt|vtt))\b", task)
+            target_srt = m_srt.group(1) if m_srt else ctx.get("srt_path")
+
+            if target_vid and Path(target_vid).exists():
+                res = autoclip_engine.process_video(
+                    video_path=target_vid,
+                    srt_path=target_srt,
+                    vertical=True,
+                    create_compilation=True,
+                )
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="vid-autoclip-01",
+                    success=res.success,
+                    data=res.to_dict(),
+                    summary=(
+                        f"🎬 **JARVIS AutoClip Execution:**\n"
+                        f"• Source Video: `{target_vid}`\n"
+                        f"• Highlight Clips Extracted: {len(res.clips)}\n"
+                        f"• Top Highlight: '{res.clips[0].title if res.clips else 'N/A'}' (Score: {res.clips[0].score if res.clips else 0.0})\n"
+                        f"• Exported Files: {len(res.exported_clip_paths)} clips\n"
+                        f"• Metadata: `{res.metadata_path}`\n"
+                        f"{res.message}"
+                    ),
+                )
+            elif target_vid:
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="vid-autoclip-err",
+                    success=False,
+                    data={},
+                    summary=f"Video file not found for AutoClip: `{target_vid}`. Please provide an existing video path.",
+                )
+
         if file_path:
             try:
                 meta = video_editing_coordinator.inspect_media(file_path)

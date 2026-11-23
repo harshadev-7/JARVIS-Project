@@ -54,6 +54,7 @@ HELP_TEXT = """
   [yellow]/research <q>[/yellow]→ Deep internet research & knowledge indexing
   [yellow]/autoreel [q][/yellow]→ Generate 100% autonomous 9:16 viral video from scratch
   [yellow]/reel <video>[/yellow]→ Autonomous 9:16 Reel creation with online trending research
+  [yellow]/autoclip <v> [s][/yellow]→ Automatic long-to-short viral highlight clipping & compilation
   [yellow]/metrics[/yellow]    → Real-time CPU, RAM, & disk hardware telemetry
   [yellow]/memory[/yellow]     → Inspect persistent user profile & episodic memory
   [yellow]/agents[/yellow]     → Inspect all 15 specialized agents in the swarm
@@ -242,6 +243,34 @@ async def handle_command(command: str, session_id: str) -> bool:
             border_style="green",
         ))
         console.print()
+
+    elif cmd.startswith("/autoclip"):
+        parts = command.split(maxsplit=2)
+        vid_arg = parts[1].strip() if len(parts) > 1 else ""
+        srt_arg = parts[2].strip() if len(parts) > 2 else None
+        if not vid_arg:
+            console.print("[yellow]Usage: /autoclip <video_path> [srt_path][/yellow]\n")
+        else:
+            from video_editor.autoclip import autoclip_engine
+            with console.status("[bold cyan]◈ JARVIS AutoClip is analyzing transcript cues, scoring highlights & rendering shorts...[/bold cyan]", spinner="dots"):
+                res = autoclip_engine.process_video(
+                    video_path=vid_arg,
+                    srt_path=srt_arg,
+                    vertical=True,
+                    create_compilation=True,
+                )
+            msg = (
+                f"[bold green]✓ AutoClip Processing Finished[/bold green]\n"
+                f"• Source: `{vid_arg}`\n"
+                f"• Highlight Clips Extracted: {len(res.clips)}\n"
+                f"• Exported Files: {len(res.exported_clip_paths)}\n"
+                f"• Metadata: `{res.metadata_path}`\n"
+            )
+            if res.compilation_path:
+                msg += f"• Compilation Reel: `{res.compilation_path}`\n"
+            msg += f"\n{res.message}"
+            console.print(Panel(msg, title="[bold cyan]🎬 JARVIS AUTOCLIP INTELLIGENCE[/bold cyan]", border_style="cyan"))
+            console.print()
 
     elif cmd.startswith("/autoreel") or cmd.startswith("/create_video") or cmd.startswith("/video"):
         parts = command.split(maxsplit=1)

@@ -76,3 +76,4 @@ editing/timelines/*
 !editing/timelines/.gitkeep
 editing/projects/*
 !editing/projects/.gitkeep
+scratch/

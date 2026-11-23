@@ -168,6 +168,7 @@ class IntentRouter:
         r"\b(who are you|what are you|your name|what can you do|capabilities|jarvis)\b"
     ]
     VIDEO_PATTERNS = [
+        r"\b(autoclip|auto\s+clip|extract\s+clips|extract\s+highlights|slice\s+highlights|podcast\s+clips|viral\s+clips)\b",
         r"\b(video\s+edit|edit\s+video|trim\s+video|cut\s+video|merge\s+video|concatenate\s+video)\b",
         r"\b(make\s+a\s+reel|create\s+short|vertical\s+video|sync\s+to\s+beat|highlight\s+reel)\b",
         r"\b(burn\s+subtitles|add\s+subtitles|export\s+video|video\s+timeline)\b",
@@ -493,10 +494,10 @@ class IntentRouter:
             )
 
         # 13. Video Editing Automation
-        if lower.startswith("/video") or lower.startswith("/reel") or lower.startswith("/short") or any(
+        if lower.startswith("/video") or lower.startswith("/reel") or lower.startswith("/short") or lower.startswith("/autoclip") or any(
             re.search(p, lower) for p in self.VIDEO_PATTERNS
         ):
-            query = re.sub(r"^/(video|reel|short)\s*", "", text).strip()
+            query = re.sub(r"^/(video|reel|short|autoclip)\s*", "", text).strip()
             return RoutingDecision(
                 intent=IntentType.VIDEO_EDITING,
                 confidence=0.92,

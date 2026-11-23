@@ -46,6 +46,20 @@ from video_editor.media_discovery import (
 )
 from video_editor.capcut_engine import CapCutEngine, CapCutStyleProfile, capcut_engine
 from video_editor.multitrack_timeline import TimelineClip, MultiTrackTimeline, create_multitrack_timeline
+from video_editor.autoclip import (
+    AutoClipEngine,
+    AutoClipResult,
+    autoclip_engine,
+    TranscriptCue,
+    SlicingWindow,
+    TranscriptSlicer,
+    DurationProfile,
+    RefinedClip,
+    TimelineRefiner,
+    ClipEvaluator,
+    VideoProcessor as AutoClipVideoProcessor,
+    CompilationBuilder as AutoClipCompilationBuilder,
+)
 
 __all__ = [
     "MediaSafetyError",
@@ -124,4 +138,16 @@ __all__ = [
     "TimelineClip",
     "MultiTrackTimeline",
     "create_multitrack_timeline",
+    "AutoClipEngine",
+    "AutoClipResult",
+    "autoclip_engine",
+    "TranscriptCue",
+    "SlicingWindow",
+    "TranscriptSlicer",
+    "DurationProfile",
+    "RefinedClip",
+    "TimelineRefiner",
+    "ClipEvaluator",
+    "AutoClipVideoProcessor",
+    "AutoClipCompilationBuilder",
 ]
