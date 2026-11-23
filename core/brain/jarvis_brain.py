@@ -222,10 +222,28 @@ class JARVISBrain:
                     )
 
             # Follow-up: Continuation Words ("Proceed", "Continue", "Yes", "Scanner", Pronouns & References)
+            pending = context.get_pending_task()
+            if pending and pending.task_type == "learning_approval" and any(w in msg_lower for w in ["no", "cancel", "reject", "don't", "stop", "nope"]):
+                from core.learning.adaptive_engine import adaptive_learning_engine
+                rec_id = pending.active_parameters.get("record_id")
+                if rec_id:
+                    await adaptive_learning_engine.reject_record(rec_id)
+                context.clear_pending_task()
+                reply_content = "Understood. The proposed update has been rejected and will not be saved."
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                context.add_assistant_turn(reply_content)
+                return AIResponse(
+                    content=reply_content,
+                    provider="custom_local_ai",
+                    model=self.local_inference.model_name if self.local_inference else "jarvis_micro_v1",
+                    tokens_used=len(reply_content.split()),
+                    agent_used="AdaptiveLearningEngine",
+                    duration_ms=duration_ms,
+                )
+
             is_proceed_word = bool(re.match(r"^(?:proceed|continue|yes|do it|go ahead|sure|ok|okay)\b", msg_lower))
             is_scanner_word = "scanner" in msg_lower or "console input" in msg_lower
             if is_proceed_word or is_scanner_word or decision.intent == IntentType.CONVERSATIONAL_FOLLOWUP:
-                pending = context.get_pending_task()
                 from core.planner.deductive_solver import deductive_solver
 
                 # 1. Check for cross-session discussion continuation
@@ -373,6 +391,20 @@ class JARVISBrain:
                         from core.creative.creative_engine import creative_engine
                         res = creative_engine.generate_image_prompt(pending.original_prompt)
                         reply_content = f"{res['formatted']}\n\n*[SOURCE: CREATIVE | Context Continuity]*"
+                    elif pending.task_type == "learning_approval":
+                        from core.learning.adaptive_engine import adaptive_learning_engine
+                        rec_id = pending.active_parameters.get("record_id")
+                        if rec_id:
+                            await adaptive_learning_engine.commit_record(rec_id)
+                            reply_content = (
+                                f"**Adaptive Learning Confirmed & Committed:**\n"
+                                f"Successfully indexed into verified knowledge base and staged for candidate fine-tuning.\n"
+                                f"- **Record ID:** #{rec_id}\n"
+                                f"- **Status:** Committed to permanent SQLite memory."
+                            )
+                        else:
+                            reply_content = "Approved correction recorded in memory."
+                        context.clear_pending_task()
                     else:
                         reply_content = f"Continuing pending operation: '{pending.original_prompt}'. All systems verified."
 
@@ -638,6 +670,87 @@ class JARVISBrain:
                 agent = agent_registry.get_agent("cybersecurity")
                 res = await agent.execute(decision.extracted_query or user_message)
                 reply_content = res.summary
+
+            elif decision.intent == IntentType.ADAPTIVE_LEARNING:
+                agent_used = "AdaptiveLearningEngine"
+                from core.learning.adaptive_engine import adaptive_learning_engine
+                msg_lower = user_message.lower().strip()
+
+                if msg_lower.startswith("/learning-log"):
+                    logs = await adaptive_learning_engine.get_learning_log(limit=10)
+                    if not logs:
+                        reply_content = "**Adaptive Learning Audit Log:**\nNo learning records found yet."
+                    else:
+                        rows = [
+                            f"- **#{r['id']}** `[{r['root_cause']}]` ({r['status'].upper()})\n"
+                            f"  - **Query:** {r['original_query']}\n"
+                            f"  - **Correction:** {r['user_correction']}\n"
+                            f"  - **Recorded:** {r['created_at'][:19] if r['created_at'] else 'N/A'}"
+                            for r in logs
+                        ]
+                        reply_content = "**Adaptive Learning Audit Log:**\n\n" + "\n\n".join(rows)
+
+                elif msg_lower.startswith("/finetune-staged"):
+                    res = adaptive_learning_engine.train_staged_model(epochs=3)
+                    if res["success"]:
+                        reply_content = (
+                            f"**Neural Model Fine-Tuning Complete (CPU):**\n"
+                            f"- **Candidate Checkpoint:** `{res['candidate_path']}`\n"
+                            f"- **Examples Trained:** {res['examples_trained']}\n"
+                            f"- **Initial Loss:** {res['initial_loss']:.4f} → **Final Loss:** {res['final_loss']:.4f}\n"
+                            f"- **Duration:** {res['elapsed_sec']} seconds\n\n"
+                            f"Use `/activate-model` to promote this candidate to active production, or keep the existing stable model."
+                        )
+                    else:
+                        reply_content = f"**Fine-Tuning Error:**\n{res.get('error', 'Training failed.')}"
+
+                elif msg_lower.startswith("/activate-model"):
+                    res = adaptive_learning_engine.activate_staged_model()
+                    if res["success"]:
+                        reply_content = f"**Model Promotion Successful:**\n{res['message']}\nBackup saved at `{res['backup_created']}`."
+                    else:
+                        reply_content = f"**Model Promotion Error:**\n{res.get('error')}"
+
+                elif msg_lower.startswith("/rollback-model"):
+                    res = adaptive_learning_engine.rollback_model()
+                    if res["success"]:
+                        reply_content = f"**Model Rollback Successful:**\n{res['message']}"
+                    else:
+                        reply_content = f"**Model Rollback Error:**\n{res.get('error')}"
+
+                elif msg_lower.startswith("/learn"):
+                    fact_text = re.sub(r"^/learn\s*", "", user_message).strip()
+                    res = await adaptive_learning_engine.learn_direct_fact(fact_text, session_id=session_id)
+                    if res["success"]:
+                        reply_content = (
+                            f"**Direct Fact Learned & Indexed:**\n"
+                            f"- **Content:** *\"{fact_text}\"*\n"
+                            f"- **Category:** `{res['diagnosis']['root_cause']}`\n"
+                            f"- **Status:** Committed to permanent SQLite knowledge base and staged for neural tuning."
+                        )
+                    else:
+                        reply_content = f"**Learning Rejected:** {res.get('error')}"
+
+                else:
+                    # Conversational correction or /feedback
+                    res = await adaptive_learning_engine.process_feedback(
+                        user_message=user_message,
+                        session_id=session_id,
+                        previous_turns=conversation_history,
+                        auto_commit=False,
+                    )
+                    if res["success"]:
+                        if res.get("needs_approval"):
+                            context.set_pending_task(
+                                task_type="learning_approval",
+                                original_prompt=user_message,
+                                active_parameters={"record_id": res["record_id"]},
+                            )
+                            reply_content = res["prompt_text"]
+                        else:
+                            reply_content = res.get("summary", "Correction recorded.")
+                    else:
+                        reply_content = f"**Feedback Rejection Notice:**\n{res.get('error')}"
 
             elif decision.intent == IntentType.MEMORY_STORE:
                 agent_used = "MemoryAgent"

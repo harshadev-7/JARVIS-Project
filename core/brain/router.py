@@ -49,6 +49,8 @@ class IntentType(str, Enum):
     VIDEO_PATTERNS = "video_editing"
     COMPUTER_VISION = "computer_vision"
     CYBERSECURITY = "cybersecurity"
+    ADAPTIVE_LEARNING = "adaptive_learning"
+    LEARNING = "adaptive_learning"
     GENERAL_CONVERSATION = "conversational_interaction"
 
 
@@ -180,6 +182,13 @@ class IntentRouter:
     CYBERSECURITY_PATTERNS = [
         r"\b(cwe-\d+|cve-\d+|vulnerability|cybersecurity|hardening|owasp|sql injection|xss|csrf|ssrf|zero trust|dnssec|tls 1\.3|syn flood|privilege escalation)\b",
     ]
+    LEARNING_PATTERNS = [
+        r"^/(?:feedback|learn|learning-log|finetune-staged|activate-model|rollback-model)\b",
+        r"^(?:that(?:\s+is|\'s)\s+(?:incorrect|wrong|not\s+true|false|inaccurate))\b",
+        r"^(?:no|nope|wrong|incorrect)[,:]?\s+(?:the\s+actual\s+answer\s+is|it(?:\s+is|\'s)|the\s+right\s+answer\s+is|actually|the\s+correct\s+answer\s+is)\b",
+        r"^actually[,:]?\s+",
+        r"\b(?:you\s+made\s+a\s+mistake|that\s+was\s+wrong|the\s+correct\s+answer\s+is)\b",
+    ]
     MEMORY_QUERY_PATTERNS = [
         r"\b(?:what(?:\s+do\s+you)?\s+know\s+about\s+me|who\s+am\s+i|who\s+i\s+am|what\s+is\s+my\s+name|what\'s\s+my\s+name)\b",
         r"\b(?:tell|recall|repeat)\s+(?:me\s+)?my\s+name\b",
@@ -268,6 +277,18 @@ class IntentRouter:
                 needs_agent=True,
                 agent_name="VisionAgent",
                 extracted_query=inner_query or text,
+            )
+
+        # Handle explicit /feedback, /learn, or adaptive learning commands & corrections
+        if any(lower.startswith(p) for p in ["/feedback", "/learn", "/learning-log", "/finetune-staged", "/activate-model", "/rollback-model"]) or any(
+            re.search(p, lower) for p in self.LEARNING_PATTERNS
+        ):
+            return RoutingDecision(
+                intent=IntentType.ADAPTIVE_LEARNING,
+                confidence=0.98,
+                needs_agent=True,
+                agent_name="AdaptiveLearningEngine",
+                extracted_query=text,
             )
 
         # Multi-turn Context Evaluation:

@@ -67,6 +67,12 @@ HELP_TEXT = """
   [yellow]/audit <p>[/yellow]   → Safe non-destructive configuration audit on authorized path
   [yellow]/inspect <f>[/yellow] → Safe static file quarantine inspection (entropy, hashes, magic)
   [yellow]/neural-research[/yellow]→ Run neural architecture benchmark (Baseline MHA vs Advanced GQA+RoPE)
+  [yellow]/feedback <c>[/yellow] → Submit corrective feedback with root-cause diagnosis
+  [yellow]/learn <fact>[/yellow] → Directly learn and index an approved fact
+  [yellow]/learning-log[/yellow]  → Inspect adaptive learning audit records
+  [yellow]/finetune-staged[/yellow]→ Run controlled CPU fine-tuning on staged feedback
+  [yellow]/activate-model[/yellow] → Promote trained candidate model to production
+  [yellow]/rollback-model[/yellow] → Revert to previous production model backup
   [yellow]/history[/yellow]    → Show conversation history
   [yellow]/clear[/yellow]      → Clear conversation memory
   [yellow]/status[/yellow]     → Show system status
@@ -81,7 +87,8 @@ COMMANDS = {
     "/help", "/solve", "/research", "/metrics", "/memory",
     "/agents", "/voice", "/history", "/clear", "/status",
     "/session", "/exit", "/quit", "/pair", "/devices", "/scan", "/folder",
-    "/secinfo", "/cwe", "/audit", "/inspect", "/neural-research", "/model-compare"
+    "/secinfo", "/cwe", "/audit", "/inspect", "/neural-research", "/model-compare",
+    "/feedback", "/learn", "/learning-log", "/finetune-staged", "/activate-model", "/rollback-model"
 }
 
 
@@ -497,6 +504,14 @@ async def handle_command(command: str, session_id: str) -> bool:
             console.print()
         except Exception as e:
             console.print(f"[bold red]Neural Research Benchmark Failed:[/bold red] {e}\n")
+
+    elif cmd.startswith("/feedback") or cmd.startswith("/learn") or cmd in ("/learning-log", "/finetune-staged", "/activate-model", "/rollback-model"):
+        with console.status("[dim]Processing adaptive learning operation...[/dim]", spinner="dots"):
+            response = await brain.think(
+                user_message=command,
+                session_id=session_id,
+            )
+        console.print(f"\n[bold blue]JARVIS:[/bold blue]\n{response.content}\n")
 
     else:
         token = command.split()[0]

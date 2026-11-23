@@ -24,6 +24,8 @@ from database.models.memory_models import (
     TaskExecutionHistory,
     KnowledgeItem,
     ProjectRecord,
+    LearningRecord,
+    LearningTrainingExample,
 )
 from core.memory.vector_memory import semantic_vector_store
 from config.settings import settings

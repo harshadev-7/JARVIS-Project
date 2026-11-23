@@ -99,3 +99,42 @@ class ProjectRecord(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc)
     )
+
+
+class LearningRecord(Base):
+    """Adaptive Learning Engine: Audited record of user corrections, feedback, and root causes."""
+    __tablename__ = "learning_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(String(64), index=True)
+    original_query: Mapped[str] = mapped_column(Text)
+    original_response: Mapped[str] = mapped_column(Text)
+    user_correction: Mapped[str] = mapped_column(Text)
+    root_cause: Mapped[str] = mapped_column(String(64), default="KNOWLEDGE_GAP")
+    status: Mapped[str] = mapped_column(String(32), default="pending_approval")  # pending_approval, approved, rejected, committed
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
+    approved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
+
+class LearningTrainingExample(Base):
+    """Adaptive Learning Engine: Training prompt-completion pairs synthesized from approved feedback."""
+    __tablename__ = "learning_training_examples"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    record_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    prompt: Mapped[str] = mapped_column(Text)
+    completion: Mapped[str] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(64), default="knowledge")
+    is_staged: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc)
+    )
+
