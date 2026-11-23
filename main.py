@@ -54,7 +54,7 @@ HELP_TEXT = """
   [yellow]/research <q>[/yellow]→ Deep internet research & knowledge indexing
   [yellow]/autoreel [q][/yellow]→ Generate 100% autonomous 9:16 viral video from scratch
   [yellow]/reel <video>[/yellow]→ Autonomous 9:16 Reel creation with online trending research
-  [yellow]/autoclip <v> [s][/yellow]→ Automatic long-to-short viral highlight clipping & compilation
+  [yellow]/autoclip <url/path> [s][/yellow]→ Auto viral highlight clipping from local video or YouTube URL
   [yellow]/metrics[/yellow]    → Real-time CPU, RAM, & disk hardware telemetry
   [yellow]/memory[/yellow]     → Inspect persistent user profile & episodic memory
   [yellow]/agents[/yellow]     → Inspect all 15 specialized agents in the swarm

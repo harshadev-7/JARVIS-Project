@@ -33,6 +33,7 @@ from video_editor.autoclip.timeline_refiner import (
 from video_editor.autoclip.clip_evaluator import ClipEvaluator
 from video_editor.autoclip.video_processor import VideoProcessor
 from video_editor.autoclip.compilation_builder import CompilationBuilder
+from video_editor.autoclip.url_ingest import UrlIngest, is_supported_url
 
 logger = logging.getLogger(__name__)
 
@@ -88,8 +89,31 @@ class AutoClipEngine:
         watermark_text: Optional[str] = "JARVIS AutoClip",
         dry_run: bool = False,
     ) -> AutoClipResult:
-        """Processes an input video, extracts highlights, and exports MP4 shorts."""
-        vid_p = Path(video_path)
+        """Processes an input video or web URL, extracts highlights, and exports MP4 shorts."""
+        raw_target = str(video_path).strip()
+
+        # Handle web video URLs (YouTube, Bilibili, etc.)
+        if is_supported_url(raw_target):
+            dl_dir = Path(output_dir or f"output/autoclip_downloads_{int(time.time())}")
+            dl_res = UrlIngest.download_media(raw_target, dl_dir)
+            if not dl_res.success or not dl_res.video_path:
+                return AutoClipResult(
+                    success=False,
+                    total_source_duration=0.0,
+                    clips=[],
+                    exported_clip_paths=[],
+                    compilation_path=None,
+                    metadata_path=None,
+                    quality_report={},
+                    message=f"Failed to ingest URL: {dl_res.error_message}",
+                )
+            vid_p = dl_res.video_path
+            if not srt_path and dl_res.srt_path:
+                srt_path = dl_res.srt_path
+            logger.info("Successfully ingested URL '%s' -> %s", raw_target, vid_p)
+        else:
+            vid_p = Path(video_path)
+
         if not vid_p.exists():
             return AutoClipResult(
                 success=False,

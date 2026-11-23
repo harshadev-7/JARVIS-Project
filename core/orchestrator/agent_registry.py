@@ -360,12 +360,14 @@ class VideoEditingAgent(BaseAgent):
         if any(w in lower for w in ["autoclip", "auto clip", "extract clips", "extract shorts", "viral clips", "highlight clips"]):
             from video_editor.autoclip import autoclip_engine
             import re
+            m_url = re.search(r"(https?://[^\s'\"]+)", task)
             m_vid = re.search(r"['\"]?([A-Za-z]:\\[^'\"\n]+|\b[\w\-_\.]+\.(?:mp4|mov|avi|mkv|webm))\b", task)
-            target_vid = m_vid.group(1) if m_vid else file_path
+            target_vid = m_url.group(1) if m_url else (m_vid.group(1) if m_vid else file_path)
             m_srt = re.search(r"['\"]?([A-Za-z]:\\[^'\"\n]+|\b[\w\-_\.]+\.(?:srt|vtt))\b", task)
             target_srt = m_srt.group(1) if m_srt else ctx.get("srt_path")
 
-            if target_vid and Path(target_vid).exists():
+            is_url = bool(target_vid and (target_vid.startswith("http://") or target_vid.startswith("https://")))
+            if target_vid and (is_url or Path(target_vid).exists()):
                 res = autoclip_engine.process_video(
                     video_path=target_vid,
                     srt_path=target_srt,

@@ -324,3 +324,51 @@ def test_brain_router_autoclip_intent():
     dec3 = router.route("can you auto clip the highlights from my video.mp4?")
     assert dec3.intent == IntentType.VIDEO_EDITING
     assert dec3.agent_name == "VideoEditingAgent"
+
+
+def test_is_supported_url():
+    """Verify web video URL detection."""
+    from video_editor.autoclip.url_ingest import is_supported_url
+
+    assert is_supported_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ") is True
+    assert is_supported_url("https://youtu.be/dQw4w9WgXcQ") is True
+    assert is_supported_url("http://bilibili.com/video/BV1xx411c7mD") is True
+    assert is_supported_url("C:\\Users\\harsh\\Videos\\podcast.mp4") is False
+    assert is_supported_url("relative/path/video.mp4") is False
+    assert is_supported_url("") is False
+
+
+def test_autoclip_engine_with_mocked_url(tmp_path):
+    """Verify AutoClipEngine downloads from URL via UrlIngest and clips video."""
+    from video_editor.autoclip.url_ingest import UrlIngest, UrlDownloadResult
+
+    mock_vid = tmp_path / "downloaded_interview.mp4"
+    mock_vid.write_bytes(b"\x00\x00\x00\x18ftypmp42")
+    mock_srt = tmp_path / "downloaded_interview.srt"
+    mock_srt.write_text(SAMPLE_SRT, encoding="utf-8")
+
+    mock_result = UrlDownloadResult(
+        success=True,
+        video_path=mock_vid,
+        srt_path=mock_srt,
+        title="AI Engineering Podcast",
+        duration_sec=65.0,
+        error_message="",
+    )
+
+    with patch.object(UrlIngest, "download_media", return_value=mock_result) as mock_dl:
+        engine = AutoClipEngine()
+        res = engine.process_video(
+            video_path="https://www.youtube.com/watch?v=sample123",
+            output_dir=tmp_path / "url_autoclip_out",
+            vertical=True,
+            dry_run=True,
+        )
+
+        assert mock_dl.called
+        assert res.success is True
+        assert len(res.clips) >= 1
+        assert len(res.exported_clip_paths) >= 1
+        assert res.metadata_path is not None
+        assert Path(res.metadata_path).exists()
+

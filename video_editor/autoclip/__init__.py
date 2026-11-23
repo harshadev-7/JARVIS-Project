@@ -26,6 +26,11 @@ from video_editor.autoclip.clip_evaluator import (
 )
 from video_editor.autoclip.video_processor import VideoProcessor
 from video_editor.autoclip.compilation_builder import CompilationBuilder
+from video_editor.autoclip.url_ingest import (
+    UrlIngest,
+    UrlDownloadResult,
+    is_supported_url,
+)
 from video_editor.autoclip.autoclip_engine import (
     AutoClipEngine,
     AutoClipResult,
@@ -47,6 +52,9 @@ __all__ = [
     "ScoredSegment",
     "VideoProcessor",
     "CompilationBuilder",
+    "UrlIngest",
+    "UrlDownloadResult",
+    "is_supported_url",
     "AutoClipEngine",
     "AutoClipResult",
     "autoclip_engine",
