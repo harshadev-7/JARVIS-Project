@@ -143,6 +143,10 @@ class IntentRouter:
         r"^(?:proceed|continue|yes|do it|go ahead|sure|ok|okay|the first one|the second one)\b",
         r"^(?:scanner|predefined|predefined values|console input)\b",
         r"\b(?:make it darker|more cinematic|make it better|make the previous prompt)\b",
+        r"\b(?:what are its types|what are the types|its types|inheritance types)\b",
+        r"\b(?:give an example|show an example|code example|provide an example)\b",
+        r"\b(?:explain the (?:first|second|third|fourth|fifth|2nd|3rd|1st) type)\b",
+        r"\b(?:explain it|write the code for that|make it faster)\b",
     ]
 
     # Device & Automation Patterns
@@ -177,16 +181,26 @@ class IntentRouter:
         r"\b(cwe-\d+|cve-\d+|vulnerability|cybersecurity|hardening|owasp|sql injection|xss|csrf|ssrf|zero trust|dnssec|tls 1\.3|syn flood|privilege escalation)\b",
     ]
     MEMORY_QUERY_PATTERNS = [
-        r"\b(what do you know about me|who am i|who i am|what is my name|what's my name)\b",
+        r"\b(?:what(?:\s+do\s+you)?\s+know\s+about\s+me|who\s+am\s+i|who\s+i\s+am|what\s+is\s+my\s+name|what\'s\s+my\s+name)\b",
         r"\b(?:tell|recall|repeat)\s+(?:me\s+)?my\s+name\b",
-        r"\bmy\s+profile\b",
-        r"\btell\s+about\s+me\b",
-        r"\babout\s+me\b",
+        r"\b(?:what\s+am\s+i\s+interested\s+in|what\s+are\s+my\s+interests|what\s+is\s+my\s+interest)\b",
+        r"\b(?:what\s+am\s+i\s+studying|what\s+is\s+my\s+(?:field|major|branch|education|degree))\b",
+        r"\b(?:tell\s+me\s+about\s+myself|tell\s+about\s+me|about\s+myself|about\s+me|my\s+profile)\b",
+        r"\b(?:what\s+was\s+our\s+previous\s+conversation\s+about|what\s+did\s+we\s+discuss\s+(?:previously|earlier)|what\s+was\s+our\s+last\s+topic|what\s+did\s+we\s+talk\s+about)\b",
+        r"\b(?:what\s+were\s+we\s+building\s+in\s+(?:our\s+)?jarvis\s+project|what\s+are\s+we\s+building\s+in\s+jarvis|what\s+was\s+the\s+last\s+error\s+we\s+fixed)\b",
+        r"\b(?:continue\s+our\s+previous\s+(?:discussion|conversation|topic))\b",
     ]
     MEMORY_STORE_PATTERNS = [
-        r"\bmy name is\s+[A-Za-z]+\b",
-        r"\bcall me\s+[A-Za-z]+\b",
-        r"\bi am\s+[A-Z][a-z]+\b",
+        r"\bmy\s+name\s+is\s+[A-Za-z]+\b",
+        r"\bcall\s+me\s+[A-Za-z]+\b",
+        r"\bi\s+am\s+[A-Z][a-z]+\b",
+        r"\bi\s+am\s+(?:a|an)?\s*(?:[A-Za-z\s]+)?student\b",
+        r"\bi\s+am\s+(?:a|an)?\s*(?:cse|ece|it|computer\s+science)\s+student\b",
+        r"\bi\s+am\s+studying\s+[^.!?]+",
+        r"\b(?:i\s+am\s+)?interested\s+in\s+[^.!?]+",
+        r"\bmy\s+interest\s+is\s+[^.!?]+",
+        r"\bi\s+want\s+to\s+become\s+(?:a|an)?\s*[^.!?]+",
+        r"\bmy\s+career\s+goal\s+is\s+[^.!?]+",
     ]
 
     def route(self, user_message: str, history: Optional[List[dict]] = None) -> RoutingDecision:
@@ -269,6 +283,28 @@ class IntentRouter:
                     agent_name="CreativeEngine",
                     extracted_query=text,
                 )
+
+        # Priority 1: Persistent Personal Memory Queries
+        if any(re.search(p, lower) for p in self.MEMORY_QUERY_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.MEMORY_QUERY,
+                confidence=0.98,
+                needs_agent=False,
+                agent_name="MemoryAgent",
+                extracted_query=text,
+            )
+
+        # Priority 2: Persistent Personal Memory Storage (Must precede code/programming recognition)
+        if any(re.search(p, lower) for p in self.MEMORY_STORE_PATTERNS) and not any(
+            w in lower for w in ["write a program", "give me a code", "write a code", "solve", "how to write"]
+        ):
+            return RoutingDecision(
+                intent=IntentType.MEMORY_STORE,
+                confidence=0.98,
+                needs_agent=False,
+                agent_name="MemoryAgent",
+                extracted_query=text,
+            )
 
         # 0. Follow-up Continuations (Proceed, Continue, Scanner, Make it darker, etc.)
         if any(re.search(p, lower) for p in self.FOLLOWUP_PATTERNS):
@@ -474,27 +510,7 @@ class IntentRouter:
                 extracted_query=query or text,
             )
 
-        # 16. Memory Query
-        if any(re.search(p, lower) for p in self.MEMORY_QUERY_PATTERNS):
-            return RoutingDecision(
-                intent=IntentType.MEMORY_QUERY,
-                confidence=0.95,
-                needs_agent=False,
-                agent_name="MemoryAgent",
-                extracted_query=text,
-            )
-
-        # 17. Memory Store
-        if any(re.search(p, lower) for p in self.MEMORY_STORE_PATTERNS):
-            return RoutingDecision(
-                intent=IntentType.MEMORY_STORE,
-                confidence=0.95,
-                needs_agent=False,
-                agent_name="MemoryAgent",
-                extracted_query=text,
-            )
-
-        # 18. Greetings
+        # 16. Greetings
         if any(re.search(p, lower) for p in self.GREETING_PATTERNS) and len(text.split()) <= 4:
             return RoutingDecision(
                 intent=IntentType.GREETING,

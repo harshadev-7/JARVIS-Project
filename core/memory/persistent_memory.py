@@ -277,5 +277,81 @@ class PersistentMemoryManager:
 
         return result.rowcount > 0
 
+    # ── Project Records ────────────────────────────────────────────────────────
+
+    async def store_project(
+        self,
+        project_id: str,
+        name: str,
+        description: str,
+        status: str = "active",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> ProjectRecord:
+        """Store or update a project record in persistent memory."""
+        await self.initialize()
+        import json
+        meta_str = json.dumps(metadata or {})
+        async with self.session_factory() as session:
+            async with session.begin():
+                stmt = select(ProjectRecord).where(ProjectRecord.project_id == project_id)
+                res = await session.execute(stmt)
+                proj = res.scalar_one_or_none()
+                if proj:
+                    proj.name = name
+                    proj.description = description
+                    proj.status = status
+                    proj.metadata_json = meta_str
+                    proj.updated_at = datetime.now(timezone.utc)
+                else:
+                    proj = ProjectRecord(
+                        project_id=project_id,
+                        name=name,
+                        description=description,
+                        status=status,
+                        metadata_json=meta_str,
+                    )
+                    session.add(proj)
+            await session.commit()
+            return proj
+
+    async def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a specific project record by ID."""
+        await self.initialize()
+        import json
+        async with self.session_factory() as session:
+            stmt = select(ProjectRecord).where(ProjectRecord.project_id == project_id)
+            res = await session.execute(stmt)
+            proj = res.scalar_one_or_none()
+            if not proj:
+                return None
+            return {
+                "project_id": proj.project_id,
+                "name": proj.name,
+                "description": proj.description,
+                "status": proj.status,
+                "metadata": json.loads(proj.metadata_json) if proj.metadata_json else {},
+                "updated_at": proj.updated_at.isoformat(),
+            }
+
+    async def list_projects(self) -> List[Dict[str, Any]]:
+        """List all tracked projects."""
+        await self.initialize()
+        import json
+        async with self.session_factory() as session:
+            stmt = select(ProjectRecord).order_by(ProjectRecord.updated_at.desc())
+            res = await session.execute(stmt)
+            projects = res.scalars().all()
+            return [
+                {
+                    "project_id": p.project_id,
+                    "name": p.name,
+                    "description": p.description,
+                    "status": p.status,
+                    "metadata": json.loads(p.metadata_json) if p.metadata_json else {},
+                    "updated_at": p.updated_at.isoformat(),
+                }
+                for p in projects
+            ]
+
 
 persistent_memory = PersistentMemoryManager()

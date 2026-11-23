@@ -29,6 +29,21 @@ class CodeAnalysisReport(BaseModel):
     issues: List[CodeIssue] = Field(default_factory=list)
     security_score: float = Field(default=1.0, ge=0.0, le=1.0)
 
+    @property
+    def functions_detected(self) -> List[str]:
+        """Backward-compatible alias for functions_found."""
+        return self.functions_found
+
+    @property
+    def summary(self) -> str:
+        """Synthesize a human-readable summary of the analysis."""
+        syntax_str = "Valid syntax" if self.is_valid_syntax else "Syntax issues detected"
+        issues_count = len(self.issues)
+        issues_str = f"{issues_count} issue(s) flagged" if issues_count else "no security issues"
+        fn_count = len(self.functions_found)
+        fn_str = f"{fn_count} function(s)" if fn_count else "no functions"
+        return f"{self.language.capitalize()} code analysis: {syntax_str}, {fn_str}, {issues_str} (Security score: {self.security_score * 100:.0f}%)."
+
 
 class CodeAnalyzer:
     """Static analyzer for multiple programming languages."""
