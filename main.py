@@ -69,6 +69,7 @@ HELP_TEXT = """
   [yellow]/audit <p>[/yellow]   → Safe non-destructive configuration audit on authorized path
   [yellow]/inspect <f>[/yellow] → Safe static file quarantine inspection (entropy, hashes, magic)
   [yellow]/neural-research[/yellow]→ Run neural architecture benchmark (Baseline MHA vs Advanced GQA+RoPE)
+  [yellow]/diagnostics[/yellow]   → Run automated self-tests across all 28 project subsystems
   [yellow]/feedback <c>[/yellow] → Submit corrective feedback with root-cause diagnosis
   [yellow]/learn <fact>[/yellow] → Directly learn and index an approved fact
   [yellow]/learning-log[/yellow]  → Inspect adaptive learning audit records
@@ -90,7 +91,8 @@ COMMANDS = {
     "/agents", "/voice", "/history", "/clear", "/status",
     "/session", "/exit", "/quit", "/pair", "/devices", "/scan", "/folder",
     "/secinfo", "/cwe", "/audit", "/inspect", "/neural-research", "/model-compare",
-    "/feedback", "/learn", "/learning-log", "/finetune-staged", "/activate-model", "/rollback-model"
+    "/feedback", "/learn", "/learning-log", "/finetune-staged", "/activate-model", "/rollback-model",
+    "/diagnostics", "/system-health", "/self-test"
 }
 
 
@@ -556,6 +558,18 @@ async def handle_command(command: str, session_id: str) -> bool:
         except Exception as e:
             console.print(f"[bold red]Neural Research Benchmark Failed:[/bold red] {e}\n")
 
+    elif cmd in {"/diagnostics", "/system-health", "/self-test"}:
+        from core.integration.system_diagnostics import system_diagnostics
+        with console.status("[bold cyan]◈ Running comprehensive self-tests across all 28 subsystems...[/bold cyan]", spinner="dots"):
+            rep = await system_diagnostics.run_full_diagnostics()
+        status_color = "green" if rep.overall_healthy else "yellow"
+        console.print(Panel(
+            rep.format_terminal_summary(),
+            title=f"[{status_color}]JARVIS System Diagnostics & Subsystem Health[/{status_color}]",
+            border_style=status_color,
+        ))
+        console.print()
+
     elif cmd.startswith("/feedback") or cmd.startswith("/learn") or cmd in ("/learning-log", "/finetune-staged", "/activate-model", "/rollback-model"):
         with console.status("[dim]Processing adaptive learning operation...[/dim]", spinner="dots"):
             response = await brain.think(
@@ -580,6 +594,8 @@ async def chat_loop():
     console.print("[dim]Initializing AI systems...[/dim]")
     try:
         await brain.initialize()
+        from core.integration.master_runtime import master_runtime
+        await master_runtime.boot()
     except Exception as e:
         console.print(f"\n[bold red]ERROR:[/bold red] Could not initialize JARVIS Brain.\n{e}")
         console.print(

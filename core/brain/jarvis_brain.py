@@ -684,6 +684,12 @@ class JARVISBrain:
                 )
                 reply_content = mission.synthesized_summary
 
+            elif decision.intent == IntentType.STATUS_DIAGNOSTICS:
+                agent_used = "SystemDiagnostics"
+                from core.integration.system_diagnostics import system_diagnostics
+                rep = await system_diagnostics.run_full_diagnostics()
+                reply_content = rep.format_terminal_summary()
+
             elif decision.intent == IntentType.ADAPTIVE_LEARNING:
                 agent_used = "AdaptiveLearningEngine"
                 from core.learning.adaptive_engine import adaptive_learning_engine

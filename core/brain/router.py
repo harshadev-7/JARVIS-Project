@@ -462,12 +462,23 @@ class IntentRouter:
             )
 
         # 10. System Diagnostics / Telemetry
+        if lower.startswith(("/diagnostics", "/system-health", "/self-test")) or any(
+            w in lower for w in ["diagnostics", "self-test", "system health", "health check"]
+        ):
+            return RoutingDecision(
+                intent=IntentType.STATUS_DIAGNOSTICS,
+                confidence=0.98,
+                needs_agent=True,
+                agent_name="SystemDiagnostics",
+                extracted_query=text,
+            )
+
         if any(re.search(p, lower) for p in self.STATUS_PATTERNS):
             return RoutingDecision(
                 intent=IntentType.STATUS_DIAGNOSTICS,
                 confidence=0.95,
                 needs_agent=True,
-                agent_name="SystemMonitor",
+                agent_name="SystemDiagnostics",
                 extracted_query=text,
             )
 
@@ -546,7 +557,19 @@ class IntentRouter:
                 extracted_query=query or text,
             )
 
-        # 16. Greetings
+        # 16. System Health & Diagnostics
+        if lower.startswith("/diagnostics") or lower.startswith("/system-health") or lower.startswith("/self-test") or any(
+            w in lower for w in ["system health", "diagnostics", "self test", "subsystem health", "run diagnostics"]
+        ):
+            return RoutingDecision(
+                intent=IntentType.STATUS_DIAGNOSTICS,
+                confidence=0.95,
+                needs_agent=False,
+                agent_name="SystemDiagnostics",
+                extracted_query=text,
+            )
+
+        # 17. Greetings
         if any(re.search(p, lower) for p in self.GREETING_PATTERNS) and len(text.split()) <= 4:
             return RoutingDecision(
                 intent=IntentType.GREETING,
