@@ -99,6 +99,7 @@ class SubsystemRegistry:
             ("circuit_breaker_resilience", "Circuit Breaker Fault Tolerance", 27, "orchestration", "Resilience state machine with retries and fallback diversion."),
             ("consensus_verification", "Multi-Agent Consensus Engine", 27, "orchestration", "Majority vote, unanimous, and weighted cross-agent verification."),
             ("master_system_runtime", "Master Runtime & Diagnostics", 28, "runtime", "Unified boot lifecycle, event bus, and automated self-tests."),
+            ("sentinel_proactive_daemon", "Autonomous Sentinel Daemon", 29, "runtime", "Continuous background resource guarding, proactive advisories, and self-healing."),
         ]
 
         for sub_id, name, phase, category, desc in canonical_entries:

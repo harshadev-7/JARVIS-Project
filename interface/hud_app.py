@@ -195,6 +195,12 @@ class JarvisHUDApp:
         b4 = tk.Button(pad, text="🔊 Voice Diagnostics", command=self._trigger_voice_test, **btn_style)
         b4.pack(fill=tk.X, pady=3)
 
+        b5 = tk.Button(pad, text="⚡ Run Self-Tests (/diagnostics)", command=self._trigger_diagnostics, **btn_style)
+        b5.pack(fill=tk.X, pady=3)
+
+        b6 = tk.Button(pad, text="🛡️ Sentinel Status (/sentinel)", command=self._trigger_sentinel, **btn_style)
+        b6.pack(fill=tk.X, pady=3)
+
         # Emergency Kill Switch at bottom of left panel
         kill_btn = tk.Button(
             pad,
@@ -340,6 +346,22 @@ class JarvisHUDApp:
         from services.voice.tts_engine import tts_engine
         tts_engine.speak("JARVIS voice systems are operational and standing by.")
         self._append_message("JARVIS", "TTSEngine", "Spoken diagnostic audio dispatched to system speakers.")
+
+    def _trigger_diagnostics(self) -> None:
+        """Trigger comprehensive self-tests across all subsystems."""
+        self._append_message("USER", None, "/diagnostics")
+        if self._loop and self._loop.is_running():
+            asyncio.run_coroutine_threadsafe(self._process_user_message_async("/diagnostics"), self._loop)
+        else:
+            self._append_message("JARVIS", "SystemError", "Async background engine is offline.")
+
+    def _trigger_sentinel(self) -> None:
+        """Query proactive sentinel daemon status and recent advisories."""
+        self._append_message("USER", None, "/sentinel")
+        if self._loop and self._loop.is_running():
+            asyncio.run_coroutine_threadsafe(self._process_user_message_async("/sentinel"), self._loop)
+        else:
+            self._append_message("JARVIS", "SystemError", "Async background engine is offline.")
 
     def _emergency_kill(self) -> None:
         """Emergency kill switch confirmation and execution."""

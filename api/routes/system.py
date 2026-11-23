@@ -6,11 +6,16 @@ Used by monitoring tools, Docker health checks, and the UI dashboard.
 """
 
 import time
+from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from api.schemas.models import HealthResponse
 from core.memory.memory_manager import memory_manager
 from config.settings import settings
+from core.integration.subsystem_registry import subsystem_registry
+from core.integration.system_diagnostics import system_diagnostics
+from core.integration.master_runtime import master_runtime
+from core.sentinel import sentinel_daemon
 
 router = APIRouter(prefix="/system", tags=["System"])
 
@@ -98,13 +103,55 @@ async def system_info():
             "multi_provider_ai",
         ],
         "coming_soon": [
-            "reasoning_engine",
-            "long_term_memory",
-            "internet_research",
             "voice_assistant",
             "computer_automation",
             "multi_agent_system",
         ],
+    }
+
+
+@router.get("/subsystems", summary="List all registered subsystems with live health metrics")
+async def get_subsystems(category: Optional[str] = None):
+    """Retrieves all registered subsystems with their health and phase metadata."""
+    subs = subsystem_registry.list_subsystems(category=category)
+    probe = subsystem_registry.probe_all_health()
+    return {
+        "total": len(subs),
+        "health_summary": probe,
+        "subsystems": [s.to_dict() for s in subs],
+    }
+
+
+@router.post("/diagnostics/run", summary="Run automated self-tests across all subsystems")
+async def run_diagnostics():
+    """Runs on-demand non-destructive diagnostic smoke tests across all subsystems."""
+    rep = await system_diagnostics.run_full_diagnostics()
+    return {
+        "status": "success",
+        "report": rep.to_dict(),
+        "summary_text": rep.format_terminal_summary(),
+    }
+
+
+@router.get("/runtime", summary="Get master runtime status")
+async def get_runtime_status():
+    """Returns the operational status, uptime, and state of the master runtime."""
+    return master_runtime.get_status()
+
+
+@router.get("/sentinel", summary="Get autonomous sentinel daemon status")
+async def get_sentinel_status():
+    """Returns the active status, recent advisories, and hygiene history of the sentinel daemon."""
+    return sentinel_daemon.get_status()
+
+
+@router.post("/sentinel/maintenance", summary="Run autonomous self-healing and routine maintenance now")
+async def trigger_maintenance(max_file_age_hours: float = 24.0):
+    """Forces an immediate execution of routine maintenance and cache cleanup."""
+    res = await sentinel_daemon.run_maintenance_now()
+    return {
+        "status": "success",
+        "maintenance": res.to_dict(),
     }
 
 

@@ -51,6 +51,7 @@ class IntentType(str, Enum):
     CYBERSECURITY = "cybersecurity"
     ADAPTIVE_LEARNING = "adaptive_learning"
     LEARNING = "adaptive_learning"
+    SENTINEL_OPERATION = "sentinel_operation"
     GENERAL_CONVERSATION = "conversational_interaction"
 
 
@@ -461,7 +462,19 @@ class IntentRouter:
                 extracted_query=query or text,
             )
 
-        # 10. System Diagnostics / Telemetry
+        # 10. Autonomous Sentinel Daemon & Maintenance
+        if lower.startswith(("/sentinel", "/maintenance", "/subsystems")) or any(
+            w in lower for w in ["sentinel", "maintenance", "subsystems", "proactive advisory"]
+        ):
+            return RoutingDecision(
+                intent=IntentType.SENTINEL_OPERATION,
+                confidence=0.98,
+                needs_agent=True,
+                agent_name="SentinelDaemon",
+                extracted_query=text,
+            )
+
+        # 10b. System Diagnostics / Telemetry
         if lower.startswith(("/diagnostics", "/system-health", "/self-test")) or any(
             w in lower for w in ["diagnostics", "self-test", "system health", "health check"]
         ):

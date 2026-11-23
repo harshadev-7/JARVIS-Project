@@ -45,6 +45,11 @@ class SystemEventType(str, Enum):
     # Diagnostics & Health
     HEALTH_PROBED = "health.probed"
     DIAGNOSTICS_COMPLETED = "diagnostics.completed"
+    
+    # Sentinel & Telemetry
+    PROACTIVE_ADVISORY = "sentinel.advisory"
+    MAINTENANCE_COMPLETED = "sentinel.maintenance"
+    TELEMETRY_SAMPLE = "sentinel.telemetry"
 
 
 @dataclass

@@ -73,7 +73,14 @@ class JARVISMasterRuntime:
         # 2. Probe initial subsystem health
         health = self.registry.probe_all_health()
 
-        # 3. Mark running
+        # 3. Launch Sentinel Daemon (Phase 29)
+        try:
+            from core.sentinel import sentinel_daemon
+            await sentinel_daemon.start()
+        except Exception as exc:
+            logger.warning("Could not start Sentinel Daemon: %s", exc)
+
+        # 4. Mark running
         self.boot_time = time.time()
         self.state = RuntimeState.RUNNING
         boot_duration_ms = (time.time() - t0) * 1000
@@ -112,7 +119,14 @@ class JARVISMasterRuntime:
             )
         )
 
-        # 2. Cancel active background tasks
+        # 2. Halt Sentinel Daemon
+        try:
+            from core.sentinel import sentinel_daemon
+            await sentinel_daemon.stop()
+        except Exception as exc:
+            logger.warning("Error stopping Sentinel Daemon: %s", exc)
+
+        # 3. Cancel active background tasks
         cancelled_count = 0
         for task in self._background_tasks:
             if not task.done():
@@ -132,14 +146,22 @@ class JARVISMasterRuntime:
         }
 
     def get_status(self) -> Dict[str, Any]:
-        """Returns consolidated runtime state, uptime, and subsystem health summary."""
+        """Returns consolidated runtime state, uptime, subsystem health, and sentinel summary."""
         health = self.registry.probe_all_health()
         recent_events = [e.to_dict() for e in event_bus.get_history(limit=5)]
+        sentinel_info = {}
+        try:
+            from core.sentinel import sentinel_daemon
+            sentinel_info = sentinel_daemon.get_status()
+        except Exception:
+            pass
+
         return {
             "runtime_state": self.state.value,
             "version": settings.JARVIS_VERSION,
             "uptime_sec": round(self.uptime_sec, 2),
             "health_summary": health,
+            "sentinel": sentinel_info,
             "recent_events": recent_events,
         }
 

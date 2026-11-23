@@ -521,6 +521,25 @@
         </div>
     </header>
 
+    <!-- Proactive Sentinel Holographic Banner -->
+    <div id="sentinel-banner" style="display:none; padding:10px 30px; background:rgba(255, 170, 0, 0.15); border-bottom:1px solid #ffaa00; color:#ffd066; font-size:14px; letter-spacing:1px; justify-content:space-between; align-items:center;">
+        <span id="sentinel-msg">◈ PROACTIVE ADVISORY: System telemetry nominal.</span>
+        <button onclick="dismissSentinelBanner()" style="background:transparent; border:1px solid #ffd066; color:#ffd066; padding:2px 10px; cursor:pointer; font-family:'Rajdhani',sans-serif;">DISMISS</button>
+    </div>
+
+    <!-- Subsystem & Diagnostics Modal -->
+    <div id="hud-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5, 11, 20, 0.85); backdrop-filter:blur(8px); z-index:999; justify-content:center; align-items:center;">
+        <div style="background:#0a1526; border:1px solid var(--primary); border-radius:8px; width:80%; max-width:960px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 0 30px var(--primary-glow); overflow:hidden;">
+            <div style="padding:15px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <span id="modal-title" style="font-family:'Orbitron',sans-serif; font-size:18px; color:var(--primary); letter-spacing:2px;">SUBSYSTEM MATRIX</span>
+                <button onclick="closeModal()" style="background:transparent; border:none; color:var(--text-main); font-size:22px; cursor:pointer;">&times;</button>
+            </div>
+            <div id="modal-body" style="padding:20px; overflow-y:auto; flex:1; font-size:14px;">
+                <!-- dynamic content -->
+            </div>
+        </div>
+    </div>
+
     <div class="workspace">
         
         <!-- Left Panel: Hardware Telemetry -->
@@ -574,6 +593,11 @@
                 <div class="controls-row">
                     <button class="btn-action" onclick="fetchMetrics()">REFRESH</button>
                     <button class="btn-action" onclick="toggleVoice()">VOICE ON</button>
+                </div>
+                <div class="controls-row" style="margin-top: 8px;">
+                    <button class="btn-action" onclick="fetchSubsystems()">28 SUBSYSTEMS</button>
+                    <button class="btn-action" onclick="runDiagnosticsHUD()">SELF-TEST</button>
+                    <button class="btn-action" onclick="fetchSentinelHUD()">SENTINEL</button>
                 </div>
             </div>
         </div>
@@ -663,6 +687,18 @@
                             appendLog('JARVIS: Mission ' + mission.mission_id + ' complete.<br>' + summary.replace(/\n/g, '<br>'), 'log-jarvis');
                             if (voiceEnabled) speakText('Mission complete.');
                             fetchMissionLedger();
+                        } else if (packet.type === 'system_event') {
+                            const evt = packet.event || {};
+                            if (evt.event_type === 'sentinel.advisory') {
+                                const p = evt.payload || {};
+                                showSentinelBanner(p.title || 'Advisory', p.description || '');
+                            }
+                        } else if (packet.type === 'subsystems_list') {
+                            renderSubsystemsModal(packet.subsystems || [], packet.health_summary || {});
+                        } else if (packet.type === 'diagnostics_result') {
+                            renderDiagnosticsModal(packet.report || {}, packet.summary_text || '');
+                        } else if (packet.type === 'sentinel_status') {
+                            renderSentinelModal(packet.sentinel || {});
                         }
                     } catch (e) {
                         console.error("WS Parse error", e);
@@ -1084,6 +1120,193 @@
                 btn.style.color = "";
                 if (recognition) { try { recognition.stop(); } catch(err){} }
                 appendLog('JARVIS: Voice output disabled.', 'log-jarvis');
+            }
+        }
+
+        function showSentinelBanner(title, desc) {
+            const banner = document.getElementById('sentinel-banner');
+            const msg = document.getElementById('sentinel-msg');
+            if (banner && msg) {
+                msg.innerHTML = `<strong>◈ PROACTIVE ADVISORY [${title}]:</strong> ${desc}`;
+                banner.style.display = 'flex';
+            }
+        }
+
+        function dismissSentinelBanner() {
+            const banner = document.getElementById('sentinel-banner');
+            if (banner) banner.style.display = 'none';
+        }
+
+        function openModal(title, contentHtml) {
+            const modal = document.getElementById('hud-modal');
+            const t = document.getElementById('modal-title');
+            const b = document.getElementById('modal-body');
+            if (modal && t && b) {
+                t.innerText = title;
+                b.innerHTML = contentHtml;
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('hud-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function fetchSubsystems() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'subsystems_request' }));
+                openModal('28 SUBSYSTEMS MATRIX', '<div style="color:var(--primary); font-family:Orbitron,sans-serif;">Querying live subsystem telemetry across all phases...</div>');
+            } else {
+                try {
+                    const res = await fetch('/system/subsystems');
+                    const data = await res.json();
+                    renderSubsystemsModal(data.subsystems || [], data.health_summary || {});
+                } catch(e) {
+                    openModal('ERROR', 'Failed to retrieve subsystem registry.');
+                }
+            }
+        }
+
+        function renderSubsystemsModal(subsystems, healthSummary) {
+            let html = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid rgba(0, 210, 255, 0.2);">
+                    <span style="font-size:16px;"><strong>Overall System Health:</strong> <span style="color:#00ffaa; text-transform:uppercase;">${healthSummary.overall_status || 'HEALTHY'}</span> (${healthSummary.healthy_count || subsystems.length}/${healthSummary.total_subsystems || subsystems.length})</span>
+                    <span style="font-size:14px; color:var(--primary);">Health Score: <strong>${healthSummary.health_score_pct || 100}%</strong></span>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px;">
+            `;
+
+            subsystems.forEach(sub => {
+                const isHealthy = (sub.status === 'healthy');
+                const badgeColor = isHealthy ? '#00ffaa' : '#ffaa00';
+                html += `
+                    <div style="background:rgba(6, 18, 38, 0.85); border:1px solid ${isHealthy ? 'rgba(0, 210, 255, 0.2)' : '#ffaa00'}; border-radius:6px; padding:10px 14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="font-weight:700; font-size:14px; color:var(--text-main);">${sub.name}</span>
+                            <span style="font-size:11px; padding:2px 6px; border-radius:3px; background:${isHealthy ? 'rgba(0, 255, 170, 0.15)' : 'rgba(255, 170, 0, 0.2)'}; color:${badgeColor}; font-weight:700; text-transform:uppercase;">${sub.status}</span>
+                        </div>
+                        <div style="font-size:11px; color:#7ec9ff; margin-bottom:4px;">Phase ${sub.phase} // ${sub.category.toUpperCase()}</div>
+                        <div style="font-size:12px; color:var(--text-dim); line-height:1.4;">${sub.description}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            openModal('28 SUBSYSTEMS MATRIX', html);
+        }
+
+        async function runDiagnosticsHUD() {
+            openModal('SYSTEM SELF-TEST RUNNER', '<div style="color:var(--primary); font-family:Orbitron,sans-serif; text-align:center; padding:30px;">◈ Executing 12-category automated smoke tests across all 28 subsystems... Please stand by.</div>');
+            try {
+                const res = await fetch('/system/diagnostics/run', { method: 'POST' });
+                const data = await res.json();
+                renderDiagnosticsModal(data.report || {}, data.summary_text || '');
+            } catch(e) {
+                openModal('DIAGNOSTICS ERROR', 'Failed to run automated self-test diagnostics.');
+            }
+        }
+
+        function renderDiagnosticsModal(report, summaryText) {
+            const passed = report.passed_count || 0;
+            const total = report.total_checks || 12;
+            const pct = report.pass_rate_pct || 100.0;
+            const isHealthy = report.overall_healthy;
+            const statusColor = isHealthy ? '#00ffaa' : '#ffaa00';
+
+            let html = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid rgba(0, 210, 255, 0.2);">
+                    <span style="font-size:16px;"><strong>Diagnostic Health:</strong> <span style="color:${statusColor};">${isHealthy ? 'HEALTHY & OPERATIONAL' : 'ATTENTION REQUIRED'}</span></span>
+                    <span style="font-size:16px; color:var(--primary);">Pass Rate: <strong>${pct.toFixed(1)}%</strong> (${passed}/${total})</span>
+                </div>
+                <div style="margin-bottom:15px;">
+            `;
+
+            (report.results || []).forEach(r => {
+                const icon = r.passed ? '✅' : '❌';
+                html += `
+                    <div style="display:flex; justify-content:space-between; padding:8px 12px; margin-bottom:6px; background:rgba(6, 18, 38, 0.6); border-radius:4px; font-size:13px;">
+                        <span>${icon} <strong>${r.name}</strong> (${r.subsystem_id})</span>
+                        <span style="color:#7ec9ff;">${r.duration_ms.toFixed(1)}ms</span>
+                    </div>
+                `;
+            });
+
+            html += `</div>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button class="btn-action" onclick="runDiagnosticsHUD()">RERUN SELF-TEST</button>
+                    <button class="btn-action" onclick="closeModal()">CLOSE</button>
+                </div>
+            `;
+            openModal('SYSTEM SELF-DIAGNOSTICS REPORT', html);
+        }
+
+        async function fetchSentinelHUD() {
+            try {
+                const res = await fetch('/system/sentinel');
+                const data = await res.json();
+                renderSentinelModal(data);
+            } catch(e) {
+                openModal('SENTINEL ERROR', 'Failed to query autonomous sentinel daemon status.');
+            }
+        }
+
+        function renderSentinelModal(sentinel) {
+            const isRunning = sentinel.is_running;
+            const advisories = sentinel.recent_advisories || [];
+            let html = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid rgba(0, 210, 255, 0.2);">
+                    <span style="font-size:16px;"><strong>Sentinel Daemon:</strong> <span style="color:${isRunning ? '#00ffaa' : '#ffaa00'};">${isRunning ? 'ACTIVE & MONITORING' : 'STANDBY'}</span></span>
+                    <span style="font-size:13px; color:#7ec9ff;">Inspection Cadence: <strong>${sentinel.check_interval_sec || 15}s</strong> | Cycles: <strong>${sentinel.cycle_count || 0}</strong></span>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <div style="font-size:14px; font-weight:700; color:var(--primary); margin-bottom:8px;">Recent Proactive Advisories (${advisories.length})</div>
+            `;
+
+            if (advisories.length === 0) {
+                html += '<div style="font-size:13px; color:var(--text-dim); padding:10px;">No alerts detected. All system metrics and memory models operating nominally.</div>';
+            } else {
+                advisories.forEach(a => {
+                    html += `
+                        <div style="padding:10px 14px; margin-bottom:8px; background:rgba(255, 170, 0, 0.1); border-left:3px solid #ffaa00; border-radius:4px;">
+                            <div style="font-weight:700; color:#ffd066; font-size:14px; margin-bottom:4px;">${a.title}</div>
+                            <div style="font-size:12px; color:var(--text-main); margin-bottom:6px;">${a.description}</div>
+                            ${a.recommended_command ? `<div style="font-size:11px; color:#7ec9ff;">Recommended Command: <code>${a.recommended_command}</code></div>` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            html += `</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:12px; border-top:1px solid rgba(0,210,255,0.2);">
+                    <button class="btn-action" onclick="triggerMaintenanceHUD()">RUN ROUTINE MAINTENANCE</button>
+                    <button class="btn-action" onclick="closeModal()">CLOSE</button>
+                </div>
+            `;
+            openModal('AUTONOMOUS SENTINEL DAEMON', html);
+        }
+
+        async function triggerMaintenanceHUD() {
+            openModal('MAINTENANCE RUNNING', '<div style="color:var(--primary); padding:20px; text-align:center;">Executing routine hygiene: pruning media caches, resetting circuit breakers, and validating DB integrity...</div>');
+            try {
+                const res = await fetch('/system/sentinel/maintenance', { method: 'POST' });
+                const data = await res.json();
+                const m = data.maintenance || {};
+                let html = `
+                    <div style="color:#00ffaa; font-size:16px; font-weight:700; margin-bottom:10px;">✅ Autonomous Maintenance Complete</div>
+                    <div style="font-size:13px; line-height:1.8; color:var(--text-main);">
+                        <div>• <strong>Files Pruned:</strong> ${m.files_cleaned} temporary files</div>
+                        <div>• <strong>Storage Freed:</strong> ${m.bytes_freed_mb} MB</div>
+                        <div>• <strong>SQLite Integrity:</strong> ${m.db_integrity_ok ? 'VERIFIED (PASS)' : 'FLAGGED'}</div>
+                        <div>• <strong>Circuit Breakers Reset:</strong> ${m.circuit_breakers_reset}</div>
+                        <div>• <strong>Duration:</strong> ${m.duration_ms} ms</div>
+                    </div>
+                    <div style="margin-top:20px; text-align:right;">
+                        <button class="btn-action" onclick="fetchSentinelHUD()">BACK TO SENTINEL</button>
+                    </div>
+                `;
+                openModal('MAINTENANCE REPORT', html);
+            } catch(e) {
+                openModal('MAINTENANCE ERROR', 'Failed to execute autonomous maintenance.');
             }
         }
 

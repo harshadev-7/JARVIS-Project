@@ -70,6 +70,9 @@ HELP_TEXT = """
   [yellow]/inspect <f>[/yellow] → Safe static file quarantine inspection (entropy, hashes, magic)
   [yellow]/neural-research[/yellow]→ Run neural architecture benchmark (Baseline MHA vs Advanced GQA+RoPE)
   [yellow]/diagnostics[/yellow]   → Run automated self-tests across all 28 project subsystems
+  [yellow]/sentinel[/yellow]      → Inspect Autonomous Sentinel status and proactive advisories
+  [yellow]/maintenance[/yellow]   → Run autonomous routine hygiene, cache pruning, and DB vacuum
+  [yellow]/subsystems[/yellow]    → List all registered subsystems and live health scores
   [yellow]/feedback <c>[/yellow] → Submit corrective feedback with root-cause diagnosis
   [yellow]/learn <fact>[/yellow] → Directly learn and index an approved fact
   [yellow]/learning-log[/yellow]  → Inspect adaptive learning audit records
@@ -92,7 +95,8 @@ COMMANDS = {
     "/session", "/exit", "/quit", "/pair", "/devices", "/scan", "/folder",
     "/secinfo", "/cwe", "/audit", "/inspect", "/neural-research", "/model-compare",
     "/feedback", "/learn", "/learning-log", "/finetune-staged", "/activate-model", "/rollback-model",
-    "/diagnostics", "/system-health", "/self-test"
+    "/diagnostics", "/system-health", "/self-test",
+    "/sentinel", "/sentinel-status", "/proactive", "/maintenance", "/subsystems"
 }
 
 
@@ -567,6 +571,58 @@ async def handle_command(command: str, session_id: str) -> bool:
             rep.format_terminal_summary(),
             title=f"[{status_color}]JARVIS System Diagnostics & Subsystem Health[/{status_color}]",
             border_style=status_color,
+        ))
+        console.print()
+
+    elif cmd in {"/sentinel", "/sentinel-status", "/proactive"}:
+        from core.sentinel import sentinel_daemon
+        st = sentinel_daemon.get_status()
+        advisories = st.get("recent_advisories", [])
+        adv_text = "\n".join([f"- **[{a['severity'].upper()}]** {a['title']}: {a['description']}" for a in advisories]) or "All system conditions nominal. Zero critical alerts."
+        content = (
+            f"**Status:** {'ONLINE & MONITORING' if st['is_running'] else 'STANDBY'}\n"
+            f"**Cycle Count:** {st['cycle_count']} | **Interval:** {st['check_interval_sec']}s\n\n"
+            f"### 🛡️ Recent Proactive Advisories:\n{adv_text}"
+        )
+        console.print(Panel(
+            Markdown(content),
+            title="[bold cyan]JARVIS Autonomous Sentinel Daemon[/bold cyan]",
+            border_style="cyan",
+        ))
+        console.print()
+
+    elif cmd in {"/maintenance", "/hygiene"}:
+        from core.sentinel import sentinel_daemon
+        with console.status("[bold yellow]◈ Executing autonomous routine maintenance...[/bold yellow]", spinner="dots"):
+            res = await sentinel_daemon.run_maintenance_now()
+        m_dict = res.to_dict()
+        summary = (
+            f"**Files Cleaned:** {m_dict['files_cleaned']}\n"
+            f"**Storage Freed:** {m_dict['bytes_freed_mb']} MB\n"
+            f"**Database Quick Check:** {'PASSED' if m_dict['db_integrity_ok'] else 'FLAGGED'}\n"
+            f"**Circuit Breakers Reset:** {m_dict['circuit_breakers_reset']}\n"
+            f"**Execution Duration:** {m_dict['duration_ms']:.1f} ms"
+        )
+        console.print(Panel(
+            Markdown(summary),
+            title="[bold green]Autonomous Maintenance Audit Report[/bold green]",
+            border_style="green",
+        ))
+        console.print()
+
+    elif cmd in {"/subsystems", "/subsystem-list"}:
+        from core.integration.subsystem_registry import subsystem_registry
+        subs = subsystem_registry.list_subsystems()
+        probe = subsystem_registry.probe_all_health()
+        rows = [f"- `[{s.status.value.upper()}]` **{s.name}** (`{s.subsystem_id}`) [Phase {s.phase} // {s.category.upper()}]: {s.description}" for s in subs]
+        content = (
+            f"**Total Subsystems Registered:** {probe['total_subsystems']} | **Overall Health:** {probe['overall_status'].upper()} ({probe['health_score_pct']}%)\n\n"
+            + "\n".join(rows)
+        )
+        console.print(Panel(
+            Markdown(content),
+            title="[bold blue]JARVIS Master Subsystems Directory (All Phases)[/bold blue]",
+            border_style="blue",
         ))
         console.print()
 

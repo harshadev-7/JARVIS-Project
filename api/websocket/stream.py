@@ -18,6 +18,10 @@ from services.automation.system_monitor import system_monitor
 from core.brain.jarvis_brain import brain
 from core.memory.memory_manager import memory_manager
 from core.orchestrator.orchestrator import orchestrator
+from core.integration.event_bus import SystemEvent, event_bus
+from core.integration.subsystem_registry import subsystem_registry
+from core.integration.system_diagnostics import system_diagnostics
+from core.sentinel import sentinel_daemon
 
 router = APIRouter(tags=["WebSockets & Live Streaming"])
 
@@ -50,6 +54,17 @@ class ConnectionManager:
 
 
 manager = ConnectionManager()
+
+# Bridge SystemEventBus to active WebSocket clients
+async def _forward_event_to_websockets(event: SystemEvent):
+    if manager.active_connections:
+        event_dict = event.to_dict()
+        await manager.broadcast({
+            "type": "system_event",
+            "event": event_dict,
+        })
+
+event_bus.subscribe("*", _forward_event_to_websockets)
 
 
 @router.websocket("/ws/stream")
@@ -88,6 +103,46 @@ async def websocket_stream_endpoint(websocket: WebSocket):
                 await websocket.send_json({
                     "type": "telemetry",
                     "data": metrics.model_dump(),
+                })
+
+            elif msg_type in {"subsystems_request", "subsystems"}:
+                all_subsystems = [s.to_dict() for s in subsystem_registry.list_subsystems()]
+                probe = subsystem_registry.probe_all_health()
+                await websocket.send_json({
+                    "type": "subsystems_list",
+                    "total": len(all_subsystems),
+                    "subsystems": all_subsystems,
+                    "health_summary": probe,
+                })
+
+            elif msg_type in {"diagnostics_request", "run_diagnostics"}:
+                rep = await system_diagnostics.run_full_diagnostics()
+                await websocket.send_json({
+                    "type": "diagnostics_result",
+                    "report": rep.to_dict(),
+                    "summary_text": rep.format_terminal_summary(),
+                })
+
+            elif msg_type in {"sentinel_request", "sentinel_status"}:
+                status = sentinel_daemon.get_status()
+                await websocket.send_json({
+                    "type": "sentinel_status",
+                    "sentinel": status,
+                })
+
+            elif msg_type in {"maintenance_request", "run_maintenance"}:
+                res = await sentinel_daemon.run_maintenance_now()
+                await websocket.send_json({
+                    "type": "maintenance_result",
+                    "maintenance": res.to_dict(),
+                })
+
+            elif msg_type in {"events_history_request", "events_history"}:
+                limit = int(packet.get("limit", 20))
+                events = [e.to_dict() for e in event_bus.get_history(limit=limit)]
+                await websocket.send_json({
+                    "type": "events_history",
+                    "events": events,
                 })
 
             elif msg_type == "chat":

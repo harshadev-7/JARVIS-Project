@@ -54,9 +54,23 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.warning(f"JARVIS Brain running in standby mode (Key pending): {e}")
 
+    # Initialize Master Runtime & Sentinel Daemon (Phases 28 & 29)
+    try:
+        from core.integration.master_runtime import master_runtime
+        await master_runtime.boot()
+        log.info("JARVIS Master Runtime & Sentinel Daemon online.")
+    except Exception as e:
+        log.error(f"Master Runtime boot error: {e}")
+
     yield  # Server is running here
 
     # ── SHUTDOWN ─────────────────────────────────────────────
+    try:
+        from core.integration.master_runtime import master_runtime
+        await master_runtime.shutdown()
+        log.info("Master Runtime shutdown complete.")
+    except Exception as e:
+        log.warning(f"Error during Master Runtime shutdown: {e}")
     log.info("JARVIS shutting down. Goodbye, sir.")
 
 

@@ -690,6 +690,43 @@ class JARVISBrain:
                 rep = await system_diagnostics.run_full_diagnostics()
                 reply_content = rep.format_terminal_summary()
 
+            elif decision.intent == IntentType.SENTINEL_OPERATION:
+                agent_used = "SentinelDaemon"
+                from core.sentinel import sentinel_daemon
+                lower_msg = user_message.lower().strip()
+                if "maintenance" in lower_msg:
+                    res = await sentinel_daemon.run_maintenance_now()
+                    m = res.to_dict()
+                    reply_content = (
+                        f"**Autonomous Maintenance Routine Executed:**\n"
+                        f"- **Files Pruned:** {m['files_cleaned']}\n"
+                        f"- **Storage Freed:** {m['bytes_freed_mb']} MB\n"
+                        f"- **SQLite Integrity:** {'VERIFIED' if m['db_integrity_ok'] else 'FLAGGED'}\n"
+                        f"- **Circuit Breakers Reset:** {m['circuit_breakers_reset']}\n"
+                        f"- **Duration:** {m['duration_ms']:.1f}ms\n\n"
+                        f"*[SOURCE: KNOWN | Sentinel Daemon]*"
+                    )
+                elif "subsystem" in lower_msg:
+                    from core.integration.subsystem_registry import subsystem_registry
+                    subs = subsystem_registry.list_subsystems()
+                    rows = [f"- `[{s.status.value.upper()}]` **{s.name}** (`{s.subsystem_id}`): {s.description}" for s in subs[:10]]
+                    reply_content = (
+                        f"**JARVIS Master Subsystems Directory ({len(subs)} registered):**\n\n"
+                        + "\n".join(rows) + "\n\n*(Use `/subsystems` for the full 28-entry registry)*\n\n"
+                        f"*[SOURCE: KNOWN | Subsystem Registry]*"
+                    )
+                else:
+                    st = sentinel_daemon.get_status()
+                    advisories = st.get("recent_advisories", [])
+                    adv_str = "\n".join([f"- **[{a['severity'].upper()}]** {a['title']}: {a['description']}" for a in advisories]) or "All system conditions nominal. Zero critical alerts."
+                    reply_content = (
+                        f"**JARVIS Autonomous Sentinel Status:**\n"
+                        f"- **Active State:** {'ONLINE & MONITORING' if st['is_running'] else 'STANDBY'}\n"
+                        f"- **Inspection Interval:** {st['check_interval_sec']}s | **Cycles:** {st['cycle_count']}\n\n"
+                        f"### 🛡️ Proactive Advisories:\n{adv_str}\n\n"
+                        f"*[SOURCE: KNOWN | Sentinel Daemon]*"
+                    )
+
             elif decision.intent == IntentType.ADAPTIVE_LEARNING:
                 agent_used = "AdaptiveLearningEngine"
                 from core.learning.adaptive_engine import adaptive_learning_engine
