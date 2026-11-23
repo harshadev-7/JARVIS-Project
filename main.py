@@ -51,6 +51,7 @@ HELP_TEXT = """
 
   [yellow]/help[/yellow]       → Show this help menu
   [yellow]/solve <task>[/yellow]→ Execute 10-step reasoning & problem solving
+  [yellow]/orchestrate <m>[/yellow]→ Execute multi-agent hierarchical DAG mission with consensus
   [yellow]/research <q>[/yellow]→ Deep internet research & knowledge indexing
   [yellow]/autoreel [q][/yellow]→ Generate 100% autonomous 9:16 viral video from scratch
   [yellow]/reel <video>[/yellow]→ Autonomous 9:16 Reel creation with online trending research
@@ -85,7 +86,7 @@ Type any message to talk with JARVIS.
 """
 
 COMMANDS = {
-    "/help", "/solve", "/research", "/metrics", "/memory",
+    "/help", "/solve", "/orchestrate", "/research", "/metrics", "/memory",
     "/agents", "/voice", "/history", "/clear", "/status",
     "/session", "/exit", "/quit", "/pair", "/devices", "/scan", "/folder",
     "/secinfo", "/cwe", "/audit", "/inspect", "/neural-research", "/model-compare",
@@ -270,6 +271,27 @@ async def handle_command(command: str, session_id: str) -> bool:
                 msg += f"• Compilation Reel: `{res.compilation_path}`\n"
             msg += f"\n{res.message}"
             console.print(Panel(msg, title="[bold cyan]🎬 JARVIS AUTOCLIP INTELLIGENCE[/bold cyan]", border_style="cyan"))
+            console.print()
+
+    elif cmd.startswith("/orchestrate"):
+        parts = command.split(maxsplit=1)
+        obj_text = parts[1].strip() if len(parts) > 1 else ""
+        if not obj_text:
+            console.print("[yellow]Usage: /orchestrate <complex multi-step objective>[/yellow]\n")
+        else:
+            from core.orchestrator.hierarchical_orchestrator import hierarchical_orchestrator
+            from core.orchestrator.consensus_engine import ConsensusStrategy
+            with console.status("[bold cyan]◈ SupervisorAgent is decomposing mission, staging DAG & coordinating swarm...[/bold cyan]", spinner="dots"):
+                mission = await hierarchical_orchestrator.execute_hierarchical_mission(
+                    objective=obj_text,
+                    consensus_strategy=ConsensusStrategy.MAJORITY_VOTE,
+                    verifying_agents=["problem_solving"],
+                )
+            console.print(Panel(
+                mission.synthesized_summary,
+                title=f"[bold green]JARVIS Multi-Agent Mission Synthesis ({mission.mission_id})[/bold green]",
+                border_style="green",
+            ))
             console.print()
 
     elif cmd.startswith("/autoreel") or cmd.startswith("/create_video") or cmd.startswith("/video"):

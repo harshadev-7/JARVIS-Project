@@ -481,6 +481,20 @@ class IntentRouter:
                 extracted_query=text,
             )
 
+        # 11. Multi-Step Autonomous Mission Orchestration
+        if lower.startswith("/orchestrate") or lower.startswith("/swarm") or (
+            any(w in lower for w in ["orchestrate", "multi-step", "coordinate agents", "swarm task"])
+            and len(text.split()) >= 3
+        ):
+            query = re.sub(r"^/(orchestrate|swarm)\s*", "", text).strip()
+            return RoutingDecision(
+                intent=IntentType.MULTI_STEP_TASK,
+                confidence=0.95,
+                needs_agent=True,
+                agent_name="HierarchicalOrchestrator",
+                extracted_query=query or text,
+            )
+
         # 12. Safe Computer Automation
         if any(re.search(p, lower) for p in self.AUTOMATION_PATTERNS) and any(
             app in lower for app in ["notepad", "calc", "calculator", "vscode", "code", "browser", "app"]

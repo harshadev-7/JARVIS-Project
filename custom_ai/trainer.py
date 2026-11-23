@@ -42,7 +42,7 @@ def detect_system_resources() -> Dict[str, Any]:
         "cpu_logical": cpu_logical,
         "cpu_physical": cpu_physical,
         "recommended_batch_size": recommended_batch,
-        "is_safe": available_ram_gb >= 0.3,
+        "is_safe": available_ram_gb >= 0.1,  # Micro-transformer requires <10 MB RAM
     }
 
 

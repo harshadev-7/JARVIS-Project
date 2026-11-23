@@ -671,6 +671,19 @@ class JARVISBrain:
                 res = await agent.execute(decision.extracted_query or user_message)
                 reply_content = res.summary
 
+            elif decision.intent == IntentType.MULTI_STEP_TASK:
+                agent_used = "HierarchicalOrchestrator"
+                from core.orchestrator.hierarchical_orchestrator import hierarchical_orchestrator
+                from core.orchestrator.consensus_engine import ConsensusStrategy
+                clean_obj = re.sub(r"^/(orchestrate|swarm)\s*", "", user_message).strip() or user_message
+                mission = await hierarchical_orchestrator.execute_hierarchical_mission(
+                    objective=clean_obj,
+                    context=context.working_variables,
+                    consensus_strategy=ConsensusStrategy.MAJORITY_VOTE,
+                    verifying_agents=["problem_solving"],
+                )
+                reply_content = mission.synthesized_summary
+
             elif decision.intent == IntentType.ADAPTIVE_LEARNING:
                 agent_used = "AdaptiveLearningEngine"
                 from core.learning.adaptive_engine import adaptive_learning_engine
