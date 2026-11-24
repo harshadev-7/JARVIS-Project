@@ -68,6 +68,16 @@ from core.self_evolution.self_version_manager import (
     VersionDiff,
 )
 
+from core.self_evolution.self_backup_recovery import (
+    SelfBackupRecoveryManager,
+    self_backup_recovery,
+    BackupType,
+    BackupFileEntry,
+    BackupManifest,
+    IntegrityReport,
+    RestoreResult,
+)
+
 __all__ = [
     # Phase 29
     "SelfLearningEngine",
@@ -113,4 +123,12 @@ __all__ = [
     "SemanticVersion",
     "ReleaseRecord",
     "VersionDiff",
+    # Phase 35
+    "SelfBackupRecoveryManager",
+    "self_backup_recovery",
+    "BackupType",
+    "BackupFileEntry",
+    "BackupManifest",
+    "IntegrityReport",
+    "RestoreResult",
 ]
