@@ -3,7 +3,7 @@
 Architectural implementation of the controlled self-improvement pipeline:
 - Phase 29: Self-Learning Engine (Feedback harvesting, mistake indexing, knowledge updates, candidate training curation)
 - Phase 30: Self-Reasoning Improvement (Strategy evaluation, approach comparison, decomposition scoring, benchmarks)
-- Phase 31: Self-Code Analysis
+- Phase 31: Self-Code Analysis (AST source inspection, bug detection, duplicate code detection, security linter)
 - Phase 32: Self-Code Generation
 - Phase 33: Automated Testing & Regression Guard
 - Phase 34: Self-Version Management
@@ -31,6 +31,17 @@ from core.self_evolution.self_reasoning_engine import (
     DecompositionQualityScore,
 )
 
+from core.self_evolution.self_code_analyzer import (
+    SelfCodeAnalyzer,
+    self_code_analyzer,
+    CodeIssue,
+    CodeIssueType,
+    IssueSeverity,
+    DuplicateBlock,
+    DependencyAnalysis,
+    CodeQualityReport,
+)
+
 __all__ = [
     # Phase 29
     "SelfLearningEngine",
@@ -47,4 +58,13 @@ __all__ = [
     "BenchmarkProblem",
     "BenchmarkEvaluationResult",
     "DecompositionQualityScore",
+    # Phase 31
+    "SelfCodeAnalyzer",
+    "self_code_analyzer",
+    "CodeIssue",
+    "CodeIssueType",
+    "IssueSeverity",
+    "DuplicateBlock",
+    "DependencyAnalysis",
+    "CodeQualityReport",
 ]

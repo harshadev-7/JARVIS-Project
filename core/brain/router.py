@@ -220,6 +220,16 @@ class IntentRouter:
         text = user_message.strip()
         lower = text.lower()
 
+        # Handle explicit /code-analysis, /code-health or /analyze-source
+        if any(lower.startswith(p) for p in ["/code-analysis", "/code-health", "/analyze-source"]):
+            return RoutingDecision(
+                intent=IntentType.CODE_EXPLANATION,
+                confidence=0.99,
+                needs_agent=False,
+                agent_name="SelfCodeAnalyzer",
+                extracted_query=text,
+            )
+
         # Handle explicit /reasoning-benchmarks, /reasoning-report or /evaluate-strategy
         if any(lower.startswith(p) for p in ["/reasoning-benchmarks", "/reasoning-report", "/evaluate-strategy", "/improve-plan"]):
             return RoutingDecision(
