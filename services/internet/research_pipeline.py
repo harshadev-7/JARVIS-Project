@@ -147,13 +147,25 @@ class ResearchPipeline:
                     })
                 else:
                     # Fallback to search snippet if page was blocked
-                    if sr.snippet and len(sr.snippet) > 30 and "Live query for" not in sr.snippet:
-                        extracted_text = sr.snippet
+                    if sr.snippet and len(sr.snippet) > 20 and "Live query for" not in sr.snippet:
+                        cleaned_snip = re.sub(r"\s+", " ", sr.snippet).strip()
+                        extracted_text = cleaned_snip
                         state = "SNIPPET_EXTRACTED"
+                        extracted_sections.append({
+                            "title": sr.title,
+                            "url": sr.url,
+                            "text": cleaned_snip,
+                        })
             except Exception as e:
                 log.debug(f"Page fetch notice for {sr.url}: {e}")
                 if sr.snippet and "Live query for" not in sr.snippet:
-                    extracted_text = sr.snippet
+                    cleaned_snip = re.sub(r"\s+", " ", sr.snippet).strip()
+                    extracted_text = cleaned_snip
+                    extracted_sections.append({
+                        "title": sr.title,
+                        "url": sr.url,
+                        "text": cleaned_snip,
+                    })
 
             if extracted_text:
                 citations.append(
@@ -191,10 +203,11 @@ class ResearchPipeline:
         # 4. Universal Structured Report Synthesis
         summary = self._synthesize_universal_report(clean_topic, extracted_sections, citations)
 
-        # 5. Index in Long-Term Knowledge Base only when real verified content exists
+        # 5. Index in Long-Term Knowledge Base only when real verified or substantive content exists
         knowledge_id = None
         indexed = False
-        if auto_index_memory and len(citations) > 0:
+        has_substance = bool(extracted_sections) or "Verified Technical" in summary or "Core Definition" in summary
+        if auto_index_memory and len(citations) > 0 and has_substance:
             try:
                 full_knowledge_text = f"Research Dossier: {clean_topic}\n\n{summary}"
                 knowledge_id = await persistent_memory.store_knowledge(
@@ -208,7 +221,10 @@ class ResearchPipeline:
             except Exception as e:
                 log.warning(f"Could not index research: {e}")
 
-        key_findings = [f"{c.title}: {c.snippet}" for c in citations if c.is_verified]
+        key_findings = [
+            f"{sec['title']}: {sec['text'][:150]}..."
+            for sec in extracted_sections[:4]
+        ] if extracted_sections else [f"{c.title}: {c.snippet}" for c in citations]
 
         return ResearchReport(
             topic=clean_topic,
@@ -287,16 +303,32 @@ class ResearchPipeline:
             return report
 
         # Universal Technical / Educational Synthesis for any arbitrary topic
+        overview_text = (
+            f"Synthesized research regarding **{topic}** compiled across verified web sources and technical documentation."
+        )
+
+        findings_text = (
+            evidence_text.strip()
+            if evidence_text.strip()
+            else "No substantive textual snippets could be extracted from the retrieved sources."
+        )
+
+        summary_text = (
+            "The retrieved documentation highlights key principles, operational characteristics, and practical applications "
+            f"relevant to **{topic}**."
+            if evidence_text.strip()
+            else "Search results were limited. Consider refining the query terms for deeper investigation."
+        )
+
         report = (
             f"### **Autonomous Research Dossier: {topic.capitalize()}**\n\n"
             f"{direct_block}"
             f"#### **1. Executive Overview & Definition**\n"
-            f"Live internet retrieval and multi-source synthesis regarding **{topic}** compiled across verified web sources.\n\n"
+            f"{overview_text}\n\n"
             f"#### **2. Key Findings & Extracted Intelligence**\n"
-            f"{evidence_text if evidence_text else 'Primary source articles were successfully retrieved and indexed into system memory.'}\n"
+            f"{findings_text}\n\n"
             f"#### **3. Summary & Takeaways**\n"
-            f"The verified evidence confirms the operational characteristics, historical background, and current applications "
-            f"detailed in the primary documentation above.\n\n"
+            f"{summary_text}\n\n"
             f"#### **4. Verified Primary Sources ({len(sources_list)} Sources):**\n"
             f"{sources_markdown}"
         )

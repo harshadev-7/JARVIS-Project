@@ -552,12 +552,31 @@ class JARVISBrain:
                         from knowledge.rag_engine import rag_engine
                         rag_ctx = await rag_engine.retrieve(user_message, top_k=2)
                         if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
-                            reply_content = (
-                                f"Based on my verified offline knowledge repository:\n\n"
-                                + "\n\n".join([f"**{e.title}** ({e.category.upper()}):\n{e.content}" for e in rag_ctx.entries])
-                                + "\n\n*[SOURCE: KNOWN | Local RAG]*"
-                            )
+                            formatted_entries = []
+                            for e in rag_ctx.entries:
+                                content = e.content.strip()
+                                # Clean up redundant dossier headers if previously indexed by research pipeline
+                                content = re.sub(r"^Research Dossier:\s*[^\n]+\n+", "", content, flags=re.I).strip()
+                                # If dossier has a direct knowledge section, extract it cleanly
+                                if "---" in content:
+                                    parts = content.split("---", 1)
+                                    if len(parts[0].strip()) > 60:
+                                        content = parts[0].strip()
+                                clean_title = e.title.replace("Research: ", "").strip()
+                                formatted_entries.append(f"### **{clean_title}** ({e.category.title()}):\n{content}")
+
+                            if formatted_entries:
+                                reply_content = (
+                                    "Based on my verified offline knowledge repository:\n\n"
+                                    + "\n\n---\n\n".join(formatted_entries)
+                                    + "\n\n*[SOURCE: KNOWN | Local RAG]*"
+                                )
+                            else:
+                                reply_content = None
                         else:
+                            reply_content = None
+
+                        if not reply_content:
                             from core.brain.conversational_cortex import conversational_cortex
                             from core.memory.persistent_memory import persistent_memory
                             user_name = await persistent_memory.get_preference("user_name") or "sir"
@@ -932,31 +951,41 @@ class JARVISBrain:
                             agent_used = "ConversationalCortex"
                             reply_content = conv_reply
                         else:
-                           # Step 2c: Query RAG Engine for verified offline knowledge
-                            from knowledge.rag_engine import rag_engine
+                            from core.knowledge.knowledge_engine import knowledge_engine
+                            know_ans = knowledge_engine.answer_question(user_message)
+                            if know_ans and know_ans.get("answer"):
+                                agent_used = "KnowledgeEngine"
+                                reply_content = f"{know_ans['answer']}\n\n*[SOURCE: KNOWN | Knowledge Engine]*"
+                            else:
+                                # Step 2c: Query RAG Engine for verified offline knowledge
+                                from knowledge.rag_engine import rag_engine
 
-                            rag_ctx = await rag_engine.retrieve(user_message, top_k=3)
+                                rag_ctx = await rag_engine.retrieve(user_message, top_k=3)
 
-                    if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
-                        agent_used = "RAGEngine"
+                                if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
+                                    agent_used = "RAGEngine"
+                                    formatted_entries = []
+                                    for e in rag_ctx.entries:
+                                        c = e.content.strip()
+                                        c = re.sub(r"^Research Dossier:\s*[^\n]+\n+", "", c, flags=re.I).strip()
+                                        if "---" in c:
+                                            parts = c.split("---", 1)
+                                            if len(parts[0].strip()) > 60:
+                                                c = parts[0].strip()
+                                        clean_t = e.title.replace("Research: ", "").strip()
+                                        formatted_entries.append(f"### **{clean_t}** ({e.category.title()}):\n{c}")
 
-                        reply_content = (
-                            "Based on my verified offline knowledge repository:\n\n"
-                        + "\n\n".join(
-                            [
-                                f"**{e.title}** ({e.category.upper()}):\n{e.content}"
-                                for e in rag_ctx.entries
-                            ]
-                        )
-                        + "\n\n*[SOURCE: KNOWN | Local RAG]*"
-                    )
-                    else:
-                        agent_used = "KnowledgeFallback"
-
-                        reply_content = (
-                            f"I couldn't find enough verified information about this topic, {user_name}.\n\n"
-                            "You can use `/research <topic>` to investigate it."
-                        )
+                                    reply_content = (
+                                        "Based on my verified offline knowledge repository:\n\n"
+                                        + "\n\n---\n\n".join(formatted_entries)
+                                        + "\n\n*[SOURCE: KNOWN | Local RAG]*"
+                                    )
+                                else:
+                                    agent_used = "KnowledgeFallback"
+                                    reply_content = (
+                                        f"I couldn't find enough verified information about this topic, {user_name}.\n\n"
+                                        "You can use `/research <topic>` to investigate it."
+                                    )
 
         except Exception as e:
             log.error(f"Brain execution error on '{user_message}': {e}")

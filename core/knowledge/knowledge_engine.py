@@ -103,6 +103,49 @@ class KnowledgeEngine:
                 "can recognize the difference on their own. The computer looks at data, finds patterns, and makes predictions."
             )
         },
+        "aiml": {
+            "title": "AIML (Artificial Intelligence & Machine Learning / AI Markup Language)",
+            "aliases": [
+                "aiml", "what is aiml", "define aiml", "ai ml", "ai/ml",
+                "what is ai/ml", "artificial intelligence markup language",
+                "ai and machine learning", "ai & ml", "explain aiml",
+                "tell me about aiml", "about aiml",
+            ],
+            "overview": (
+                "In computer science and software engineering, **AIML** refers to two primary concepts:\n\n"
+                "1. **AI & Machine Learning (AI/ML):** The unified discipline combining **Artificial Intelligence** "
+                "(systems exhibiting autonomous perception, reasoning, and decision-making) with **Machine Learning** "
+                "(statistical algorithms that generalize patterns from empirical training data without being explicitly hardcoded).\n\n"
+                "2. **Artificial Intelligence Markup Language (AIML):** An XML-compliant declarative markup language "
+                "created in 1995 by Dr. Richard Wallace for programming rule-based conversational agents and chatbots, "
+                "such as the historical A.L.I.C.E. chatterbot."
+            ),
+            "how_it_works": (
+                "**1. Core Pillars of AI & Machine Learning (AI/ML):**\n"
+                "• **Data Pipeline & Representation:** Ingesting structured or unstructured data, feature engineering, and high-dimensional vector embeddings.\n"
+                "• **Mathematical Optimization:** Minimizing objective loss functions using gradient descent algorithms (e.g. AdamW, SGD) across deep neural architectures.\n"
+                "• **Inference & Decision Policy:** The trained model predicts classifications, generates text/code, or drives autonomous actions.\n\n"
+                "**2. AIML Chatbot Syntax (XML-based):**\n"
+                "• `<category>`: The fundamental atomic knowledge unit.\n"
+                "• `<pattern>`: The user prompt match condition (with wildcard support).\n"
+                "• `<template>`: The generated response.\n"
+                "• `<srai>`: Symbolic reduction used to resolve synonyms and conversational redirects."
+            ),
+            "examples": [
+                "**AI/ML Real-World Applications:** Natural language processing, computer vision, recommendation systems, and autonomous robotics.",
+                "**AIML Code Snippet:**\n"
+                "  `<category>`\n"
+                "    `<pattern>WHAT IS YOUR NAME</pattern>`\n"
+                "    `<template>My name is JARVIS.</template>`\n"
+                "  `</category>`",
+                "**JARVIS Offline Architecture:** A living example of modern AI/ML—featuring a local CPU Transformer, 10-step deductive solver, and persistent memory."
+            ],
+            "simplified": (
+                "In simple words, today **AIML** most often refers to **AI and Machine Learning**—the field of teaching computers "
+                "to recognize patterns, make predictions, and solve problems from data. Historically, it is also the name of a simple "
+                "XML-based language created in the 1990s to build rule-based chatbots."
+            )
+        },
         "java": {
             "title": "Java Programming Language",
             "aliases": ["java", "what is java", "define java", "java programming language"],
@@ -531,6 +574,47 @@ class KnowledgeEngine:
         return {
             "type": "comparative_analysis",
             "topic": "Java vs Python",
+            "answer": formatted,
+            "verified": True,
+        }
+
+    def _synthesize_jdk_jre_jvm_comparison(self) -> Dict[str, Any]:
+        """Synthesizes a first-principles architectural comparison between JDK, JRE, and JVM."""
+        formatted = (
+            "### **Architectural Comparison: JDK vs. JRE vs. JVM**\n\n"
+            "The relationship between the Java Development Kit (JDK), Java Runtime Environment (JRE), "
+            "and Java Virtual Machine (JVM) is hierarchical and nested:\n\n"
+            "```text\n"
+            "┌────────────────────────────────────────────────────────────────────────┐\n"
+            "│ JDK (Java Development Kit) - For Developers                            │\n"
+            "│ Development Tools: javac (compiler), jdb (debugger), javadoc, jar, etc. │\n"
+            "│ ┌────────────────────────────────────────────────────────────────────┐ │\n"
+            "│ │ JRE (Java Runtime Environment) - For Running Applications          │ │\n"
+            "│ │ Class Libraries (rt.jar, core packages) & Configuration Files      │ │\n"
+            "│ │ ┌────────────────────────────────────────────────────────────────┐ │ │\n"
+            "│ │ │ JVM (Java Virtual Machine) - The Execution Engine              │ │ │\n"
+            "│ │ │ ClassLoader, Bytecode Verifier, Execution Engine (JIT + Interp)│ │ │\n"
+            "│ │ │ Memory Areas (Method Area, Heap, Stack, PC Registers)          │ │ │\n"
+            "│ │ └────────────────────────────────────────────────────────────────┘ │ │\n"
+            "│ └────────────────────────────────────────────────────────────────────┘ │\n"
+            "└────────────────────────────────────────────────────────────────────────┘\n"
+            "```\n\n"
+            "#### **Key Structural Differences:**\n\n"
+            "| Component | Full Name | Primary Purpose | Contains |\n"
+            "| :--- | :--- | :--- | :--- |\n"
+            "| **JVM** | Java Virtual Machine | Executes compiled bytecode on host CPU | ClassLoader, Memory Manager (Garbage Collector), JIT Compiler |\n"
+            "| **JRE** | Java Runtime Environment | Provides the runtime environment to execute Java apps | JVM + Core Class Libraries + Supporting Files |\n"
+            "| **JDK** | Java Development Kit | Complete development package to write, compile, and debug | JRE + Development Tools (`javac`, `jdb`, `javadoc`, `jar`) |\n\n"
+            "#### **Architectural Formula:**\n"
+            "• **JRE** = JVM + Class Libraries (`java.lang`, `java.util`, etc.)\n"
+            "• **JDK** = JRE + Development & Debugging Tools (`javac`, `jdb`, `jar`)\n\n"
+            "#### **Platform Independence:**\n"
+            "• The **Java language and bytecode** are platform-independent (\"Write Once, Run Anywhere\").\n"
+            "• The **JVM and JDK/JRE implementations** are platform-dependent (different native binaries for Windows, Linux, and macOS)."
+        )
+        return {
+            "type": "comparative_analysis",
+            "topic": "JDK vs JRE vs JVM",
             "answer": formatted,
             "verified": True,
         }

@@ -157,6 +157,9 @@ class WebSearchEngine:
                         if isinstance(topic, dict) and "Text" in topic and "FirstURL" in topic:
                             text = topic["Text"].strip()
                             url_val = topic["FirstURL"].strip()
+                            # Skip internal duckduckgo redirect/disambiguation URLs in favor of external sources
+                            if "duckduckgo.com/" in url_val:
+                                continue
                             if text and url_val and url_val not in seen_urls:
                                 seen_urls.add(url_val)
                                 title = text.split(" - ")[0] if " - " in text else text[:60]

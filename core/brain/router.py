@@ -117,10 +117,10 @@ class IntentRouter:
 
     # 6b. Knowledge Question Answering Patterns
     KNOWLEDGE_PATTERNS = [
-        r"\b(?:what\s+is\s+(?:an?\s+|the\s+)?(?:ai|artificial\s+intelligence|machine\s+learning|ml|java|python|operating\s+system|os|database|dbms|algorithm|computer\s+network|networking|ram))\b",
-        r"\b(?:what\s+is\s+the\s+difference\s+between|difference\s+between|compare\s+\w+\s+and\s+\w+)\b",
+        r"\b(?:what\s+is\s+(?:an?\s+|the\s+)?(?:ai|artificial\s+intelligence|machine\s+learning|ml|aiml|java|python|operating\s+system|os|database|dbms|algorithm|computer\s+network|networking|ram|jdk|jre|jvm))\b",
+        r"\b(?:what\s+is\s+the\s+difference\s+between|difference\s+between|compare|comparison\s+(?:of|between)|versus|\bvs\b)\b",
         r"\b(?:explain\s+(?:the\s+previous\s+answer\s+in\s+)?(?:simpler|simple)\s+words|explain\s+in\s+simple\s+words)\b",
-        r"\b(?:explain\s+(?:java\s+)?inheritance|explain\s+(?:polymorphism|machine\s+learning|artificial\s+intelligence|ai))\b",
+        r"\b(?:explain\s+(?:java\s+)?inheritance|explain\s+(?:polymorphism|machine\s+learning|artificial\s+intelligence|ai|aiml))\b",
     ]
 
     # 7. Document Summarization
@@ -487,7 +487,8 @@ class IntentRouter:
                         r"why\s+is|why\s+does|why\s+do|how\s+does|"
                         r"how\s+do|how\s+did|how\s+can|explain|"
                         r"describe|define|tell\s+me\s+about|"
-                        r"give\s+me\s+an?\s+overview\s+of)\b",
+                        r"give\s+me\s+an?\s+overview\s+of|compare|"
+                        r"comparison|versus|\bvs\b)\b",
                         lower,
                     )
                 )
