@@ -230,6 +230,16 @@ class IntentRouter:
                 extracted_query=text,
             )
 
+        # Handle explicit /generate-patch, /code-proposals, /apply-sandbox or /sandbox-status
+        if any(lower.startswith(p) for p in ["/generate-patch", "/code-proposals", "/apply-sandbox", "/sandbox-status"]):
+            return RoutingDecision(
+                intent=IntentType.CODE_GENERATION,
+                confidence=0.99,
+                needs_agent=False,
+                agent_name="SelfCodeGenerator",
+                extracted_query=text,
+            )
+
         # Handle explicit /reasoning-benchmarks, /reasoning-report or /evaluate-strategy
         if any(lower.startswith(p) for p in ["/reasoning-benchmarks", "/reasoning-report", "/evaluate-strategy", "/improve-plan"]):
             return RoutingDecision(
