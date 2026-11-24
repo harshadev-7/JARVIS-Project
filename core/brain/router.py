@@ -250,6 +250,16 @@ class IntentRouter:
                 extracted_query=text,
             )
 
+        # Handle explicit /version-history, /changelog or /compare-versions
+        if any(lower.startswith(p) for p in ["/version-history", "/changelog", "/compare-versions"]):
+            return RoutingDecision(
+                intent=IntentType.STATUS_DIAGNOSTICS,
+                confidence=0.99,
+                needs_agent=False,
+                agent_name="SelfVersionManager",
+                extracted_query=text,
+            )
+
         # Handle explicit /reasoning-benchmarks, /reasoning-report or /evaluate-strategy
         if any(lower.startswith(p) for p in ["/reasoning-benchmarks", "/reasoning-report", "/evaluate-strategy", "/improve-plan"]):
             return RoutingDecision(

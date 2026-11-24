@@ -6,7 +6,7 @@ Architectural implementation of the controlled self-improvement pipeline:
 - Phase 31: Self-Code Analysis (AST source inspection, bug detection, duplicate code detection, security linter)
 - Phase 32: Self-Code Generation (Targeted refactoring, unified diff patch generation, isolated dev sandbox)
 - Phase 33: Automated Testing & Regression Guard (Test runner, regression detection, performance comparison, rejection gate)
-- Phase 34: Self-Version Management
+- Phase 34: Self-Version Management (Semantic versioning, changelog generator, release history, rollback pointers)
 - Phase 35: Backup and Recovery
 - Phase 36: Controlled Self-Update System
 - Phase 37: Continuous Performance Evaluation
@@ -60,6 +60,14 @@ from core.self_evolution.self_test_runner import (
     CandidateTestEvaluation,
 )
 
+from core.self_evolution.self_version_manager import (
+    SelfVersionManager,
+    self_version_manager,
+    SemanticVersion,
+    ReleaseRecord,
+    VersionDiff,
+)
+
 __all__ = [
     # Phase 29
     "SelfLearningEngine",
@@ -99,4 +107,10 @@ __all__ = [
     "RegressionComparison",
     "PerformanceComparison",
     "CandidateTestEvaluation",
+    # Phase 34
+    "SelfVersionManager",
+    "self_version_manager",
+    "SemanticVersion",
+    "ReleaseRecord",
+    "VersionDiff",
 ]
