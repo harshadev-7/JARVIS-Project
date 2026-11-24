@@ -519,10 +519,16 @@ class IntentRouter:
             )
         )
 
+        is_math_action = bool(
+            re.search(r"\b\d+\s*(?:[\*\+\-\/]|multiplied\s+by|times|plus|minus|divided\s+by)\s*\d+\b", lower)
+            or (any(c.isdigit() for c in lower) and any(op in lower for op in ["*", "+", "-", "/", "multiplied by", "divided by"]))
+        )
+
         if (
             is_knowledge_question
             and not is_code_action
             and not is_live_research
+            and not is_math_action
         ):
             return RoutingDecision(
                 intent=IntentType.KNOWLEDGE_QUESTION,

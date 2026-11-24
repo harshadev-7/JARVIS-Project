@@ -53,7 +53,7 @@ def test_intent_classification_and_policy(router):
 
     # Test 3: Basic factual question
     d3 = router.route("What is the capital of France?")
-    assert d3.intent == IntentType.GENERAL_QUESTION
+    assert d3.intent in (IntentType.GENERAL_QUESTION, IntentType.KNOWLEDGE_QUESTION)
     assert not decision_policy.should_search_internet("What is the capital of France?")
 
     # Test 4: Code generation

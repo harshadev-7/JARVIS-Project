@@ -235,6 +235,18 @@ class DeductiveSolver:
         lower = text.lower()
         use_scanner = context_params and context_params.get("input_mode") == "scanner"
 
+        # Check if text is actually a programming/code generation request or algorithmic topic
+        from core.planner.code_generator import code_generator
+        is_code = code_generator.is_code_request(text) or any(
+            w in lower for w in [
+                "program", "code", "script", "algorithm", "prime", "fibonacci", "factorial",
+                "palindrome", "quicksort", "mergesort", "bubblesort", "binary search",
+                "addition of two", "add two numbers", "inheritance"
+            ]
+        )
+        if not is_code:
+            return None
+
         # 1. Java: Addition of Two Numbers
         if ("java" in lower and ("addition" in lower or "add" in lower or "two numbers" in lower or "sum" in lower)) or (
             "addition" in lower and "two" in lower and "java" in lower
@@ -426,6 +438,12 @@ class DeductiveSolver:
                 "code": code_block,
                 "verified": True,
             }
+
+        # 5. Universal Multi-Language Code Generator (Java, Python, C++, C#, JS, TS, Go, Rust, Kotlin, etc.)
+        from core.planner.code_generator import code_generator
+        gen_res = code_generator.generate_code(text)
+        if gen_res:
+            return gen_res
 
         return None
 

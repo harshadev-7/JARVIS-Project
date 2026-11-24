@@ -497,7 +497,11 @@ class KnowledgeEngine:
                     "verified": True,
                 }
 
-        # 3. Direct Concept Lookup in Knowledge Base
+        # 3. Direct Concept Lookup in Knowledge Base (skip if code generation is requested)
+        from core.planner.code_generator import code_generator
+        if code_generator.is_code_request(question):
+            return None
+
         for key, data in self.KNOWLEDGE_BASE.items():
             for alias in data["aliases"]:
                 # Exact or substring match on alias

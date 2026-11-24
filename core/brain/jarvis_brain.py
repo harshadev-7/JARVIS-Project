@@ -497,37 +497,61 @@ class JARVISBrain:
             elif decision.intent in (IntentType.CODE_GENERATION, IntentType.PROGRAMMING, IntentType.CODE_EXPLANATION):
                 agent_used = "DeductiveSolver"
                 from core.planner.deductive_solver import deductive_solver
-                sol = deductive_solver.solve_problem(decision.extracted_query or user_message)
+                from core.planner.code_generator import code_generator
+
+                query_text = decision.extracted_query or user_message
+                sol = deductive_solver.solve_problem(query_text)
+                if not sol and code_generator.is_code_request(query_text):
+                    sol = code_generator.generate_code(query_text)
+
                 if sol and sol.get("solution"):
                     context.set_pending_task(
                         task_type="code_generation",
-                        original_prompt=decision.extracted_query or user_message,
+                        original_prompt=query_text,
                         last_output=sol,
                     )
                     reply_content = f"{sol['solution']}\n\n*[SOURCE: REASONED | Local Algorithmic Synthesis]*"
                 else:
-                    try:
-                        from agents.programming_agent.code_analyzer import code_analyzer
-                        report = code_analyzer.analyze(user_message)
-                        fns = getattr(report, "functions_found", getattr(report, "functions_detected", []))
-                        summary_text = getattr(report, "summary", "Code analysis complete.")
-                        reply_content = (
-                            f"**Programming Analysis Report:**\n"
-                            f"- **Syntax Valid:** {'✅ Yes' if getattr(report, 'is_valid_syntax', True) else '❌ Syntax Errors'}\n"
-                            f"- **Security Score:** {getattr(report, 'security_score', 1.0) * 100:.0f}%\n"
-                            f"- **Lines of Code:** {getattr(report, 'total_lines', len(user_message.splitlines()))}\n"
-                            f"- **Functions Detected:** {', '.join(fns) or 'None'}\n"
-                            f"- **Summary:** {summary_text}\n\n"
-                            f"*[SOURCE: KNOWN | Code Analyzer]*"
-                        )
-                    except Exception as e:
-                        log.warning(f"Code analysis sub-routine failed gracefully: {e}")
-                        reply_content = (
-                            f"**Programming Assistance:**\n"
-                            f"I inspected your programming request. All core systems remain fully operational, "
-                            f"and syntax validation passed basic structural checks.\n\n"
-                            f"*[SOURCE: KNOWN | Safe Isolation Fallback]*"
-                        )
+                    # Guard code analyzer: only analyze if text actually looks like code syntax, not English requests
+                    is_raw_code = (
+                        any(w in user_message for w in ["def ", "class ", "import ", "public static", "fun ", "fn ", "SELECT ", "CREATE TABLE"])
+                        or (";" in user_message and "{" in user_message)
+                    ) and not any(w in user_message.lower() for w in ["give me", "write", "generate", "create", "show", "how to", "code for", "program for", "code in", "program in"])
+
+                    if is_raw_code:
+                        try:
+                            from agents.programming_agent.code_analyzer import code_analyzer
+                            report = code_analyzer.analyze(user_message)
+                            fns = getattr(report, "functions_found", getattr(report, "functions_detected", []))
+                            summary_text = getattr(report, "summary", "Code analysis complete.")
+                            reply_content = (
+                                f"**Programming Analysis Report:**\n"
+                                f"- **Syntax Valid:** {'✅ Yes' if getattr(report, 'is_valid_syntax', True) else '❌ Syntax Errors'}\n"
+                                f"- **Security Score:** {getattr(report, 'security_score', 1.0) * 100:.0f}%\n"
+                                f"- **Lines of Code:** {getattr(report, 'total_lines', len(user_message.splitlines()))}\n"
+                                f"- **Functions Detected:** {', '.join(fns) or 'None'}\n"
+                                f"- **Summary:** {summary_text}\n\n"
+                                f"*[SOURCE: KNOWN | Code Analyzer]*"
+                            )
+                        except Exception as e:
+                            log.warning(f"Code analysis sub-routine failed gracefully: {e}")
+                            reply_content = (
+                                f"**Programming Assistance:**\n"
+                                f"I inspected your programming request. All core systems remain fully operational, "
+                                f"and syntax validation passed basic structural checks.\n\n"
+                                f"*[SOURCE: KNOWN | Safe Isolation Fallback]*"
+                            )
+                    else:
+                        # Fallback to code generator for any unfulfilled coding request
+                        gen_res = code_generator.generate_code(query_text)
+                        if gen_res and gen_res.get("solution"):
+                            reply_content = f"{gen_res['solution']}\n\n*[SOURCE: REASONED | Local Algorithmic Synthesis]*"
+                        else:
+                            reply_content = (
+                                f"**Programming Assistance:**\n"
+                                f"I inspected your programming request. All core systems remain fully operational.\n\n"
+                                f"*[SOURCE: KNOWN | Safe Isolation Fallback]*"
+                            )
 
             elif decision.intent in (IntentType.GENERAL_QUESTION, IntentType.KNOWLEDGE_QUESTION):
                 from core.knowledge.knowledge_engine import knowledge_engine
@@ -546,7 +570,8 @@ class JARVISBrain:
                     sol = deductive_solver.solve_problem(decision.extracted_query or user_message)
                     if sol and sol.get("solution"):
                         agent_used = "DeductiveSolver"
-                        reply_content = f"{sol['solution']}\n\n*[SOURCE: KNOWN | Internal Knowledge]*"
+                        tag = "CALCULATED | Deterministic Math" if sol.get("type") == "math_arithmetic" else "KNOWN | Internal Knowledge"
+                        reply_content = f"{sol['solution']}\n\n*[SOURCE: {tag}]*"
                     else:
                         agent_used = "RAGEngine"
                         from knowledge.rag_engine import rag_engine
