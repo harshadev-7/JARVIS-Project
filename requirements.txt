@@ -65,3 +65,5 @@ pytest-asyncio==0.24.0
 #
 # See requirements_optional.txt for future/optional packages.
 # ============================================================
+
+click==8.1.8

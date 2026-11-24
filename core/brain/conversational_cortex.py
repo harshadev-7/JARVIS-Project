@@ -49,6 +49,21 @@ class ConversationalCortex:
         if orig_lower in casual_greetings or q_lower in casual_greetings:
             return f"Hello, {address}! It is wonderful to hear from you. What are we exploring or working on together today?"
 
+        # 0b. Direct Identity & Capabilities ("Who are you / What are you / Tell me about yourself")
+        if any(w in q_lower for w in ["what are you", "who are you", "what is jarvis", "who is jarvis", "tell me about yourself", "describe yourself", "what can you do", "introduce yourself", "about you"]):
+            return (
+                f"I am **JARVIS** (Just A Rather Very Intelligent System), your independent, offline-first personal artificial intelligence co-pilot, {address}.\n\n"
+                f"**Architecture & Core Capabilities:**\n"
+                f"• **Neural Model:** Custom GPT-style Decoder-Only Transformer running locally on CPU\n"
+                f"• **Autonomous Reasoning:** 10-Step Deductive Problem Solving (`/solve <problem>`)\n"
+                f"• **Persistent Memory:** Local SQLite database (`jarvis.db`) & TF-IDF semantic vector engine\n"
+                f"• **Universal Investigation:** Web research and fact verification without cloud AI (`/research <topic>`)\n"
+                f"• **Safe Computer Automation:** Local file, application, and system management with permission controls\n"
+                f"• **Self-Evolution Engine:** Continuous self-learning, AST code analysis, testing gates, and SemVer release management\n"
+                f"• **Zero Cloud AI Dependencies:** 100% offline, private, and local execution.\n\n"
+                f"How may I assist you today?"
+            )
+
         # 1. Perspective on Humanity ("What is human in your perspective / opinion?")
         if (
             any(w in q_lower for w in [
@@ -172,183 +187,18 @@ class ConversationalCortex:
             return random.choice(jokes).replace("{address}", address)
 
         # 9. Technical & Conceptual Knowledge Modules
-        # 9a. Java Technical Summary & Ecosystem Overview
-        if (
-            any(w in q_lower for w in ["summary about java", "summary of java", "about java", "what is java", "java programming", "java overview", "java language"])
-            and not any(w in q_lower for w in ["update", "updates", "version", "new in java", "recent"])
-        ):
-            return (
-                "### **Java Programming Language: Technical Summary**\n\n"
-                "**Java** is a high-level, class-based, object-oriented, memory-safe language developed by James Gosling at Sun Microsystems in 1995 and maintained by Oracle.\n\n"
-                "#### **1. Architectural Pillars:**\n"
-                "- **Write Once, Run Anywhere (WORA):** Java source (`.java`) compiles into bytecode (`.class`), executed by the **Java Virtual Machine (JVM)**.\n"
-                "- **Automatic Memory Management:** Generational Garbage Collection (G1GC, ZGC, Shenandoah) eliminates manual pointer freeing.\n"
-                "- **Object-Oriented Programming (OOP):** Strictly adheres to Encapsulation, Inheritance, Polymorphism, and Abstraction.\n"
-                "- **Multithreading & Concurrency:** Robust concurrency primitives (`java.util.concurrent`), locks, atomics, and modern **Virtual Threads (Project Loom)**.\n\n"
-                "#### **2. Execution Architecture:**\n"
-                "- **JDK (Java Development Kit):** Full development kit including the compiler (`javac`), debugger, and utilities.\n"
-                "- **JRE (Java Runtime Environment):** Runtime libraries + JVM necessary to execute applications.\n"
-                "- **JVM (Java Virtual Machine):** Just-In-Time (JIT) HotSpot compiler converting hot bytecode to native CPU instructions.\n\n"
-                "#### **3. Primary Applications:**\n"
-                "- **Enterprise Backends:** Spring Boot, Micronaut, Quarkus, Jakarta EE.\n"
-                "- **Distributed Systems & Big Data:** Apache Kafka, Apache Spark, Hadoop, Cassandra, Elasticsearch.\n"
-                "- **Android Systems:** Core runtime foundation."
-            )
+                # 9. Delegate all unmatched requests to the central brain.
+        #
+        # Technical questions -> Knowledge Engine / RAG
+        # Programming requests -> Programming Agent
+        # Mathematical questions -> Mathematical Agent
+        # Complex reasoning -> Deductive Solver
+        # Current information -> Research Pipeline
+        #
+        # The Conversational Cortex must not generate generic
+        # technical answers or duplicate other specialized engines.
 
-        # 9b. Java Platform Updates & Modern Releases (Java 21 LTS & Beyond)
-        if "java" in q_lower and any(w in q_lower for w in ["update", "updates", "new features", "latest", "what's new", "recent", "version", "release"]):
-            return (
-                "### **Latest Java Platform Updates & Modern Releases (Java 21 LTS & Beyond)**\n\n"
-                "Under the standard 6-month release cadence, **Java 21** is the current primary Long-Term Support (LTS) release, introducing major architectural advancements:\n\n"
-                "#### **1. Game-Changing Java 21 LTS Features:**\n"
-                "- **Virtual Threads (Project Loom - JEP 444):**\n"
-                "  - Lightweight, user-mode threads managed directly by the JVM rather than 1:1 OS kernel threads.\n"
-                "  - Enables high-throughput concurrent servers handling millions of connections with synchronous code (`Executors.newVirtualThreadPerTaskExecutor()`).\n"
-                "- **Sequenced Collections (JEP 431):**\n"
-                "  - Unified collection interfaces: `SequencedCollection`, `SequencedSet`, `SequencedMap` with explicit ordering methods: `.getFirst()`, `.getLast()`, `.addFirst()`, `.reversed()`.\n"
-                "- **Record Patterns (JEP 440):**\n"
-                "  - Deconstructs `record` instances directly in pattern matching expressions without boilerplate getters.\n"
-                "- **Pattern Matching for `switch` (JEP 441):**\n"
-                "  - Type-safe, expressive branching within `switch` statements and expressions with exhaustiveness checking.\n"
-                "- **Generational ZGC (JEP 439):**\n"
-                "  - Sub-millisecond maximum pause times even across multi-terabyte heaps by dividing memory into young and old generations.\n\n"
-                "#### **2. Modern Java 22 / 23 / 24 Enhancements:**\n"
-                "- **Foreign Function & Memory API (Project Panama - JEP 454):** Safe, fast interop with native C/C++ libraries without JNI.\n"
-                "- **Stream Gatherers (Preview):** Customizable intermediate operations for the Java Streams API (e.g. windowing, folding).\n"
-                "- **String Templates & Compact Source Files:** Streamlining syntax for modern developers."
-            )
-
-        # 9c. Conceptual Addition & Foundations of Arithmetic
-        if any(w in q_lower for w in ["what is an addition", "what is addition", "explain addition", "concept of addition", "definition of addition", "tell about addition"]):
-            return (
-                "### **Mathematical & Computational Concept: Addition ($+$)**\n\n"
-                "**Addition** is one of the four foundational binary arithmetic operations (alongside subtraction, multiplication, and division) "
-                "that computes the aggregate combination of two or more quantities.\n\n"
-                "#### **1. Axiomatic Mathematical Properties:**\n"
-                "- **Closure:** For any $a, b \\in \\mathbb{R}$, their sum $a + b \\in \\mathbb{R}$.\n"
-                "- **Commutative Law:** Operand order does not change the result:\n"
-                "  $$a + b = b + a \\quad (10 + 20 = 20 + 10 = 30)$$\n"
-                "- **Associative Law:** Regrouping yields identical values:\n"
-                "  $$(a + b) + c = a + (b + c)$$\n"
-                "- **Additive Identity ($0$):** Adding zero leaves any quantity unchanged ($a + 0 = a$).\n"
-                "- **Additive Inverse:** For every number $a$, there exists $-a$ such that $a + (-a) = 0$.\n\n"
-                "#### **2. Hardware Implementation in Computer Architecture (ALU):**\n"
-                "Inside the CPU Arithmetic Logic Unit:\n"
-                "- **Half-Adder:** Computes sum of two single bits ($\\text{Sum} = A \\oplus B$, $\\text{Carry} = A \\land B$).\n"
-                "- **Full-Adder:** Computes sum including carry-in ($C_{\\text{in}}$) from previous stages.\n"
-                "- **Carry-Lookahead Adders (CLA):** Eliminates ripple carry propagation delay in modern 64-bit processors."
-            )
-
-        # 9d. Operating Systems (OS) Architecture
-        if any(w in q_lower for w in ["what is an os", "what is an operating system", "what is os", "operating system concept", "about operating system", "os(operating system)"]):
-            return (
-                "### **Computer Systems: What is an Operating System (OS)?**\n\n"
-                "An **Operating System (OS)** is foundational system software that acts as an intermediary interface between computer hardware and user applications. "
-                "It abstracts physical hardware complexity and coordinates resource sharing.\n\n"
-                "#### **1. Core Responsibilities of an OS:**\n"
-                "1. **Process Management & Scheduling:** Allocates CPU time across multiple tasks (Round Robin, SJF, Multi-Level Feedback Queues), handling context switching and synchronization.\n"
-                "2. **Memory Management (RAM):** Implements **Virtual Memory**, paging, segmentation, and page replacement (LRU, Clock) to provide each process an isolated address space.\n"
-                "3. **Storage & File System Management:** Organizes hierarchical storage (ext4, NTFS, APFS), file descriptors, inodes, and disk I/O scheduling.\n"
-                "4. **Device & I/O Subsystem:** Provides standardized hardware device drivers, handling interrupts and Direct Memory Access (DMA).\n"
-                "5. **Protection & Security:** Enforces CPU privilege rings—distinguishing **Kernel Mode (Ring 0)** with unrestricted hardware access from **User Mode (Ring 3)** where application code runs safely.\n\n"
-                "#### **2. Primary Architectural Models:**\n"
-                "- **Monolithic Kernels:** All core OS services run in kernel space (Linux, Unix).\n"
-                "- **Microkernels:** Only minimal primitives run in kernel space; drivers and file systems run in user space (seL4, QNX).\n"
-                "- **Hybrid Kernels:** Combines monolithic performance with modular architecture (Windows NT, macOS XNU)."
-            )
-
-        # 9e. Deadlock in Operating Systems
-        if "deadlock" in q_lower and any(w in q_lower for w in ["operating system", "os", "prevent", "avoid", "algorithm", "occur", "cause", "what is"]):
-            return (
-                "### **Operating Systems: Deadlock Analysis & Prevention**\n\n"
-                "A **deadlock** is a state where a set of concurrent processes are permanently blocked because each process holds a resource "
-                "and is waiting to acquire another resource held by another process in the same set.\n\n"
-                "#### **1. The Four Necessary & Sufficient Coffman Conditions:**\n"
-                "1. **Mutual Exclusion:** At least one resource must be non-shareable.\n"
-                "2. **Hold and Wait:** A process holds resources while waiting for additional resources.\n"
-                "3. **No Preemption:** Resources cannot be forcibly seized; only voluntarily released.\n"
-                "4. **Circular Wait:** Closed cycle of processes (P0 -> P1 -> ... -> Pn -> P0) waiting on each other.\n\n"
-                "#### **2. Deadlock Prevention:**\n"
-                "- **Invalidate Circular Wait (Resource Ordering):** Impose strict global order F: R -> N. Processes can only request resources in strictly ascending order (F(Rj) > F(Ri)).\n"
-                "- **Invalidate Hold and Wait:** Require processes to request all resources at once.\n"
-                "- **Invalidate No Preemption:** Preempt held resources if a new request cannot be allocated.\n\n"
-                "#### **3. Deadlock Avoidance (Banker's Algorithm):**\n"
-                "- Dynamically verifies that allocating a resource preserves a **Safe State** where a safe sequence exists.\n"
-                "*(For complete Python/Java source code and dry-run execution, issue `/solve deadlock in OS`)*"
-            )
-
-        # 9f. Python Technical Summary & Ecosystem Overview
-        if (
-            any(w in q_lower for w in ["summary about python", "summary of python", "about python", "what is python", "python programming", "python overview", "python language"])
-            and not any(w in q_lower for w in ["update", "updates", "version", "new in python", "recent"])
-        ):
-            return (
-                "### **Python Programming Language: Technical Summary**\n\n"
-                "**Python** is a high-level, interpreted, dynamically typed, garbage-collected programming language created by Guido van Rossum in 1991.\n\n"
-                "#### **1. Architectural & Linguistic Pillars:**\n"
-                "- **Readability & Expressiveness:** Emphasizes clean syntax using whitespace indentation (PEP 8).\n"
-                "- **Multi-Paradigm:** Supports Object-Oriented, Functional, Imperative, and Procedural programming styles.\n"
-                "- **Dynamic Typing & Memory Management:** Reference counting combined with a generational cyclic garbage collector.\n"
-                "- **Global Interpreter Lock (GIL):** A mutex in CPython that protects access to Python objects, preventing multiple native threads from executing Python bytecodes simultaneously (modern Python 3.13 introduces experimental free-threaded mode without the GIL).\n\n"
-                "#### **2. Primary Industry Ecosystems:**\n"
-                "- **Artificial Intelligence & Machine Learning:** PyTorch, TensorFlow, JAX, Hugging Face, Scikit-learn.\n"
-                "- **Data Science & Analytics:** NumPy, Pandas, Polars, SciPy, Matplotlib.\n"
-                "- **Backend Engineering:** FastAPI, Django, Flask, AsyncIO."
-            )
-
-        # 10. Broad Informational Inquiries
-        from core.brain.decision_policy import decision_policy
-
-        topic_match = re.search(
-            r"(?i)^(?:give me\s+|tell me\s+|tell\s+|show me\s+)?(?:a\s+)?(?:summary\s+(?:about|of)|new\s+updates?\s+(?:about|of|on|in)|updates?\s+(?:about|of|on|in)|what\s+is\s+(?:an?\s+)?|what\s+are\s+|who\s+is\s+|why\s+is\s+|explain\s+|about\s+|how\s+does\s+|definition\s+of\s+|overview\s+of\s+)(.+)$",
-            q_clean
-        )
-        if topic_match:
-            raw_topic = topic_match.group(1).strip().rstrip("?.")
-            # Don't capture known cognitive/math domains
-            if not any(k in raw_topic.lower() for k in ["angle", "clock", "train", "speed", "distance", "sheep", "handshake", "sum of", "discount", "profit"]):
-                if len(raw_topic) >= 2:
-                    is_update = bool(re.search(r"\b(update|updates|new|latest|version)\b", q_clean, re.I))
-                    # Only search if policy confirms it requires live internet research
-                    if decision_policy.should_search_internet(q_clean):
-                        summary = self._quick_web_insight(raw_topic, is_update_query=is_update)
-                        if summary:
-                            header = f"Latest Updates & Release Details for **{raw_topic}**" if is_update else f"Verified Technical Summary: **{raw_topic}**"
-                            return (
-                                f"### **{header}**\n\n"
-                                f"{summary}\n\n"
-                                f"Would you like to explore deeper into any specific aspect of {raw_topic}, {address}?"
-                            )
-
-        # 10b. Guard against running web perception on imperative action commands
-        if re.match(r"(?i)^(play|open|launch|run|close|stop|pause|render|edit|cut|trim|start|watch|show)\b", q_clean):
-            return None
-
-        # 11. Direct Deductive & Answer-First Fallback
-        from core.planner.deductive_solver import deductive_solver
-        direct_ans = deductive_solver.solve_problem(q_clean)
-        if direct_ans and direct_ans.get("solution"):
-            return direct_ans["solution"]
-
-        cleaned_topic = q_clean.rstrip("?.")
-        if len(cleaned_topic) > 3:
-            if decision_policy.should_search_internet(q_clean):
-                summary = self._quick_web_insight(cleaned_topic)
-                if summary:
-                    return (
-                        f"### **Information on {cleaned_topic}:**\n\n"
-                        f"{summary}\n\n"
-                        f"How can I assist you further with this, {address}?"
-                    )
-
-            return (
-                f"I hear you, {address}. Regarding **{cleaned_topic}**:\n\n"
-                f"All core systems are operational. I can generate code, solve quantitative problems, "
-                f"or explore technical concepts directly. How can I assist you with this?"
-            )
-
-        return f"Hello, {address}! All JARVIS core systems are online. What would you like to explore or solve together today?"
-
+        return None
     def _quick_web_insight(self, topic: str, is_update_query: bool = False) -> Optional[str]:
         """Perform lightweight web retrieval with clean separation to eliminate concatenated text."""
         try:

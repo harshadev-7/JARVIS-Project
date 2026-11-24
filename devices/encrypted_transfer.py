@@ -7,7 +7,7 @@ sandboxing. Guarantees end-to-end confidentiality and tamper resistance.
 
 import os
 import hashlib
-from typing import Dict, Any, Generator, Tuple, Optional
+from typing import Dict, Any, Generator, Tuple, Optional, Iterable
 from datetime import datetime, timezone
 
 from devices.crypto_channel import CryptoChannel
@@ -59,7 +59,7 @@ class EncryptedTransferEngine:
         self,
         file_name: str,
         target_folder: str,
-        encrypted_packets: List_or_iterable,
+        encrypted_packets: Iterable[bytes],
         expected_sha256: str,
         channel: CryptoChannel,
     ) -> Dict[str, Any]:

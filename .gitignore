@@ -68,6 +68,7 @@ ui/desktop/dist/
 .pytest_cache/
 htmlcov/
 .coverage
+backups/
 
 # ── Media & Editing Workspace ──────────────────────────────────────────────
 media/temporary/

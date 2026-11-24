@@ -18,6 +18,39 @@ class KnowledgeEngine:
     """Offline-first knowledge synthesis engine for conceptual questions."""
 
     KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
+        "jarvis": {
+            "title": "J.A.R.V.I.S. (Just A Rather Very Intelligent System)",
+            "aliases": [
+                "jarvis", "what are you", "who are you", "what is jarvis", "who is jarvis",
+                "tell me about yourself", "what can you do", "introduce yourself",
+                "about you", "what are your capabilities", "your name", "about jarvis"
+            ],
+            "overview": (
+                "**J.A.R.V.I.S.** (Just A Rather Very Intelligent System) is an autonomous, 100% offline-first "
+                "multi-agent artificial intelligence assistant. Designed to run completely locally on your machine's CPU "
+                "without external cloud AI APIs (zero dependencies on OpenAI, Gemini, or Ollama), JARVIS unites a custom "
+                "PyTorch Transformer, deterministic reasoning, persistent memory, and safe multi-device automation."
+            ),
+            "how_it_works": (
+                "JARVIS operates through an integrated, multi-tier cognitive architecture:\n"
+                "1. **Neural Transformer Core:** A custom GPT-style Decoder-Only Transformer running locally.\n"
+                "2. **Deductive Problem Solving:** 10-step first-principles reasoning for deterministic math, logic, and code.\n"
+                "3. **Persistent Memory:** SQLite storage (`jarvis.db`) paired with TF-IDF semantic vector recall.\n"
+                "4. **Autonomous Agent Swarm:** 15 domain-specialized agents (Coding, Research, Security, Automation, Vision, etc.).\n"
+                "5. **Self-Evolution Engine:** Continuous self-learning, AST code analysis, testing gates, and SemVer release management."
+            ),
+            "examples": [
+                "**10-Step Deductive Problem Solving:** Run `/solve <problem>` for step-by-step verified problem solving.",
+                "**AST Code Analysis & Refactoring:** Static inspection, bug linting, and sandboxed patching via `/analyze-source`.",
+                "**Media & Computer Vision:** Highlight extraction, vertical reel creation, and OCR via AutoClip.",
+                "**Authorized Multi-Device Mesh:** Local encrypted sync and companion device pairing without cloud brokers."
+            ],
+            "simplified": (
+                "In simple words, I am **JARVIS**—your private, personal artificial intelligence co-pilot running directly "
+                "on your computer. I help you write code, solve problems, research facts, automate PC tasks, and edit videos "
+                "with complete privacy and zero cloud dependencies."
+            )
+        },
         "ai": {
             "title": "Artificial Intelligence (AI)",
             "aliases": ["ai", "artificial intelligence", "what is an ai", "what is ai", "define ai"],
@@ -92,6 +125,101 @@ class KnowledgeEngine:
             "simplified": (
                 "In simple words, **Java** is a popular coding language built so that a program written on a Windows PC can run "
                 "on a Mac, Linux server, or smartphone without rewriting the code, thanks to a translator called the JVM."
+            )
+        },
+                "jvm": {
+            "title": "Java Virtual Machine (JVM)",
+            "aliases": [
+                "jvm",
+                "java virtual machine",
+                "what is jvm",
+                "what is the jvm",
+            ],
+            "overview": (
+                "The **Java Virtual Machine (JVM)** is an abstract runtime "
+                "machine that executes Java bytecode. It allows Java "
+                "programs to run on different operating systems."
+            ),
+            "how_it_works": (
+                "1. The Java compiler converts source code into bytecode.\n"
+                "2. The JVM loads and verifies the bytecode.\n"
+                "3. The execution engine interprets bytecode or uses "
+                "Just-In-Time (JIT) compilation.\n"
+                "4. The JVM manages memory and garbage collection."
+            ),
+            "examples": [
+                "**Platform Independence:** The same Java bytecode can run "
+                "on compatible JVM implementations across operating systems.",
+                "**Memory Management:** JVM automatically manages heap "
+                "memory and garbage collection.",
+                "**Execution:** The JVM executes compiled Java applications."
+            ],
+            "simplified": (
+                "The JVM is like a machine-specific translator. It takes "
+                "Java bytecode and executes it on your computer."
+            )
+        },
+
+        "jre": {
+            "title": "Java Runtime Environment (JRE)",
+            "aliases": [
+                "jre",
+                "java runtime environment",
+                "what is jre",
+                "what is the jre",
+            ],
+            "overview": (
+                "The **Java Runtime Environment (JRE)** provides the "
+                "runtime components required to execute Java applications. "
+                "It includes the JVM and supporting libraries."
+            ),
+            "how_it_works": (
+                "1. The JRE provides the JVM.\n"
+                "2. It supplies Java class libraries and supporting files.\n"
+                "3. The JVM executes Java bytecode using these resources.\n"
+                "4. Applications can run without requiring development tools."
+            ),
+            "examples": [
+                "**Running Applications:** Executing an existing Java desktop application.",
+                "**Enterprise Applications:** Providing runtime components "
+                "for Java-based server applications.",
+                "**Libraries:** Supplying standard Java runtime libraries."
+            ],
+            "simplified": (
+                "The JRE is the environment needed to run Java programs. "
+                "It contains the JVM and the libraries required by applications."
+            )
+        },
+
+        "jdk": {
+            "title": "Java Development Kit (JDK)",
+            "aliases": [
+                "jdk",
+                "java development kit",
+                "what is jdk",
+                "what is the jdk",
+            ],
+            "overview": (
+                "The **Java Development Kit (JDK)** is a software "
+                "development package used to create, compile, debug, "
+                "and run Java applications."
+            ),
+            "how_it_works": (
+                "The JDK provides development tools such as:\n"
+                "1. **javac:** Compiles Java source code into bytecode.\n"
+                "2. **java:** Launches Java applications.\n"
+                "3. **javadoc:** Generates API documentation.\n"
+                "4. **jdb:** Provides debugging capabilities.\n"
+                "5. Runtime components required to execute Java programs."
+            ),
+            "examples": [
+                "**Development:** Writing Java programs in Eclipse or IntelliJ IDEA.",
+                "**Compilation:** Using javac to convert .java files into .class files.",
+                "**Debugging:** Finding and fixing errors in Java applications."
+            ],
+            "simplified": (
+                "The JDK is the complete toolkit developers use to create, "
+                "compile, debug, and run Java programs."
             )
         },
         "python": {
@@ -214,36 +342,75 @@ class KnowledgeEngine:
         """Identify question intent and synthesize an authoritative direct answer."""
         q_lower = question.lower().strip().rstrip("?.")
 
-        # 1. Check for Context Simplification ("Explain the previous answer in simpler words")
-        if any(w in q_lower for w in ["simpler words", "explain in simple", "simplify", "easier words", "like i'm five"]):
+                # 1. Context-aware simplification
+        if any(
+            phrase in q_lower
+            for phrase in [
+                "simpler words",
+                "explain in simple",
+                "simplify",
+                "easier words",
+                "like i'm five",
+                "explain simply",
+                "in simple language",
+            ]
+        ):
             if previous_context:
-                # Find matching topic in previous context
-                for key, data in self.KNOWLEDGE_BASE.items():
-                    if data["title"].lower() in previous_context.lower() or key in previous_context.lower():
-                        return {
-                            "type": "simplified_explanation",
-                            "topic": data["title"],
-                            "answer": (
-                                f"### **{data['title']} — Explained in Simple Words**\n\n"
-                                f"{data['simplified']}\n\n"
-                                f"**Quick Analogy:**\n"
-                                f"• {data['examples'][0]}\n\n"
-                                f"Does this clearer perspective help, sir?"
-                            ),
-                            "verified": True,
-                        }
-            # Fallback general simplification
+                matched_topic = None
+
+                # Prefer matching the complete topic title.
+                for data in self.KNOWLEDGE_BASE.values():
+                    if data["title"].lower() in previous_context.lower():
+                        matched_topic = data
+                        break
+
+                # If the title is unavailable, check longer aliases.
+                if matched_topic is None:
+                    for data in self.KNOWLEDGE_BASE.values():
+                        aliases = sorted(
+                            data["aliases"],
+                            key=len,
+                            reverse=True,
+                        )
+
+                        for alias in aliases:
+                            if len(alias) < 4:
+                                continue
+
+                            if re.search(
+                                rf"\b{re.escape(alias.lower())}\b",
+                                previous_context.lower(),
+                            ):
+                                matched_topic = data
+                                break
+
+                        if matched_topic is not None:
+                            break
+
+                if matched_topic:
+                    return {
+                        "type": "simplified_explanation",
+                        "topic": matched_topic["title"],
+                        "answer": (
+                            f"### {matched_topic['title']} — Simple Explanation\n\n"
+                            f"{matched_topic['simplified']}\n\n"
+                            f"**Real-world example:**\n"
+                            f"{matched_topic['examples'][0]}"
+                        ),
+                        "verified": False,
+                        "source_type": "built_in_knowledge",
+                    }
+
             return {
                 "type": "simplified_explanation",
                 "topic": "General Concept",
                 "answer": (
-                    "### **Simplified Explanation**\n\n"
-                    "Breaking it down to core essentials:\n\n"
-                    "Think of technology as tools designed to handle repetitive mental work. "
-                    "Instead of a person manually calculating numbers or routing messages, we create systems "
-                    "that do it automatically using clear, step-by-step rules."
+                    "I can simplify the previous explanation, "
+                    "but I need its original topic or answer to "
+                    "avoid explaining the wrong concept."
                 ),
-                "verified": True,
+                "verified": False,
+                "source_type": "general_fallback",
             }
 
         # 2. Check for Comparative Analysis (e.g. "difference between AI and machine learning")
@@ -252,6 +419,11 @@ class KnowledgeEngine:
                 return self._synthesize_ai_vs_ml_comparison()
             if "java" in q_lower and "python" in q_lower:
                 return self._synthesize_java_vs_python_comparison()
+                        # Java platform architecture comparison
+            java_components = ["jdk", "jre", "jvm"]
+
+            if all(component in q_lower for component in java_components):
+                return self._synthesize_jdk_jre_jvm_comparison()
 
         # 2b. Specific Specialized Concepts (Inheritance, RAM)
         if "inheritance" in q_lower:

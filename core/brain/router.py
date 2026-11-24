@@ -7,7 +7,7 @@ creative engine, or local Transformer model should handle the request.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 import re
 from typing import Any, Dict, List, Optional
@@ -64,7 +64,7 @@ class RoutingDecision:
     needs_agent: bool
     agent_name: Optional[str] = None
     extracted_query: str = ""
-    metadata: Dict[str, Any] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class IntentRouter:
@@ -167,7 +167,8 @@ class IntentRouter:
         r"\b(hello|hi|hey|good morning|good evening|good afternoon|greetings)\b"
     ]
     IDENTITY_PATTERNS = [
-        r"\b(who are you|what are you|your name|what can you do|capabilities|jarvis)\b"
+        r"\b(?:who\s+are\s+you|what\s+are\s+you|what\s+is\s+your\s+name|your\s+name|who\s+made\s+you|who\s+created\s+you|who\s+built\s+you|what\s+can\s+you\s+do|your\s+capabilities|what\s+are\s+your\s+capabilities|tell\s+me\s+about\s+yourself|introduce\s+yourself|describe\s+yourself|what\s+is\s+jarvis|who\s+is\s+jarvis|are\s+you\s+(?:an?\s+)?ai)\b",
+        r"^(?:hey\s+|hi\s+|ok\s+)?jarvis[!?.]*$",
     ]
     VIDEO_PATTERNS = [
         r"\b(autoclip|auto\s+clip|extract\s+clips|extract\s+highlights|slice\s+highlights|podcast\s+clips|viral\s+clips)\b",
@@ -466,14 +467,62 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 4b. Knowledge Questions & Conceptual Explanations
+        # 4a. Identity & Self-Awareness Detection
+        if any(re.search(p, lower) for p in self.IDENTITY_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.IDENTITY,
+                confidence=0.98,
+                needs_agent=False,
+                agent_name="ConversationalCortex",
+                extracted_query=text,
+            )
+
+        # 4b. General Knowledge & Conceptual Question Detection
         is_knowledge_question = (
-            any(re.search(p, lower) for p in self.KNOWLEDGE_PATTERNS)
-            or bool(re.search(r"\bwhat\s+is\s+(?:an?\s+|the\s+)?(ai|machine learning|java|python|operating system|database|algorithm|computer network)\b", lower))
-            or ("difference between" in lower and any(w in lower for w in ["ai", "machine learning", "java", "python", "ram"]))
-            or any(w in lower for w in ["simpler words", "simple words", "explain inheritance", "what is an ai", "what is ai"])
+            (
+                any(re.search(p, lower) for p in self.KNOWLEDGE_PATTERNS)
+                or bool(
+                    re.search(
+                        r"\b(?:what\s+is|what\s+are|who\s+is|who\s+was|"
+                        r"why\s+is|why\s+does|why\s+do|how\s+does|"
+                        r"how\s+do|how\s+did|how\s+can|explain|"
+                        r"describe|define|tell\s+me\s+about|"
+                        r"give\s+me\s+an?\s+overview\s+of)\b",
+                        lower,
+                    )
+                )
+            )
+            and not any(re.search(p, lower) for p in self.IDENTITY_PATTERNS)
         )
-        if is_knowledge_question and not any(w in lower for w in ["give me a code", "write a code", "write a program"]):
+
+        is_code_action = bool(
+            re.search(
+                r"\b(?:write|generate|create|implement|debug|"
+                r"fix|execute|run)\b.{0,50}\b(?:code|program|"
+                r"script|function|class)\b",
+                lower,
+            )
+            or re.search(
+                r"\b(?:give\s+me\s+a\s+code|write\s+a\s+code|"
+                r"write\s+a\s+program|program\s+to|code\s+to)\b",
+                lower,
+            )
+        )
+
+        is_live_research = bool(
+            any(re.search(p, lower) for p in self.RESEARCH_PATTERNS)
+            or re.search(
+                r"\b(?:latest|current|recent|today|2026|"
+                r"newest|upcoming)\b",
+                lower,
+            )
+        )
+
+        if (
+            is_knowledge_question
+            and not is_code_action
+            and not is_live_research
+        ):
             return RoutingDecision(
                 intent=IntentType.KNOWLEDGE_QUESTION,
                 confidence=0.96,
@@ -481,7 +530,6 @@ class IntentRouter:
                 agent_name="KnowledgeEngine",
                 extracted_query=text,
             )
-
         # 5. Multi-Language Code Generation & Programming
         is_code_request = (
             any(re.search(p, lower) for p in self.CODE_PATTERNS)

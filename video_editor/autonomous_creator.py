@@ -119,11 +119,15 @@ class TrendingTopicCurator:
             try:
                 rep = await research_pipeline.conduct_research(clean_topic, max_sources=2)
                 points = [f.split(":")[-1].strip()[:65] for f in rep.key_findings[:3]]
-                if len(points) < 3:
-                    points.extend([
-                        f"Discover the power of {clean_topic}.",
-                        "Local-first intelligence in action.",
-                    ])
+                fallback_points = [
+                    f"Discover the power of {clean_topic}.",
+                    "Local-first intelligence in action.",
+                    "Efficiency and automation are shaping the future.",
+                ]
+
+                points = points[:3]
+                while len(points) < 3:
+                    points.append(fallback_points[len(points)])
             except Exception:
                 points = [
                     f"Discover the latest breakthroughs in {clean_topic}.",

@@ -5,6 +5,7 @@ Interfaces with authorized search APIs (Tavily, Brave Search)
 with a zero-key DuckDuckGo fallback for resilient web queries.
 """
 
+import re
 import httpx
 from typing import List, Optional
 from pydantic import BaseModel, Field

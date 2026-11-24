@@ -9,7 +9,7 @@ semantic search, designed to integrate seamlessly with ChromaDB/Qdrant.
 
 import math
 import re
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 

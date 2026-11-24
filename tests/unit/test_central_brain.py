@@ -38,11 +38,17 @@ async def test_brain_greeting_intent():
 
 @pytest.mark.asyncio
 async def test_brain_identity_intent():
-    resp = await brain.think("who are you", session_id="test_identity")
-    assert resp.success is True
-    assert "JARVIS" in resp.content
-    assert "custom" in resp.content.lower()
-    assert "transformer" in resp.content.lower()
+    resp1 = await brain.think("who are you", session_id="test_identity")
+    assert resp1.success is True
+    assert "JARVIS" in resp1.content
+    assert "custom" in resp1.content.lower()
+    assert "transformer" in resp1.content.lower()
+
+    resp2 = await brain.think("what are you?", session_id="test_identity_what")
+    assert resp2.success is True
+    assert "JARVIS" in resp2.content
+    assert "transformer" in resp2.content.lower()
+    assert "offline" in resp2.content.lower()
 
 
 @pytest.mark.asyncio

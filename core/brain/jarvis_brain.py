@@ -558,7 +558,27 @@ class JARVISBrain:
                                 + "\n\n*[SOURCE: KNOWN | Local RAG]*"
                             )
                         else:
-                            reply_content = f"**Answer:**\n{user_message.strip()} is processed through verified offline intelligence.\n\n*[SOURCE: KNOWN]*"
+                            from core.brain.conversational_cortex import conversational_cortex
+                            from core.memory.persistent_memory import persistent_memory
+                            user_name = await persistent_memory.get_preference("user_name") or "sir"
+                            address = user_name if user_name and user_name.lower() != "sir" else "sir"
+
+                            conv_reply = await conversational_cortex.respond(
+                                user_message=user_message,
+                                user_name=address,
+                                conversation_history=conversation_history,
+                            )
+                            if conv_reply:
+                                agent_used = "ConversationalCortex"
+                                reply_content = f"{conv_reply}\n\n*[SOURCE: REASONED | Conversational Cortex]*"
+                            else:
+                                reply_content = (
+                                    f"I analyzed your query regarding **{user_message.strip()}** across my verified offline knowledge base. "
+                                    f"While no exact pre-indexed entry was matched, all offline intelligence subsystems remain operational. "
+                                    f"You can run `/research {user_message.strip()}` for a multi-source web investigation, "
+                                    f"or `/solve {user_message.strip()}` for first-principles deductive reasoning.\n\n"
+                                    f"*[SOURCE: KNOWN | Local Knowledge]*"
+                                )
 
             elif decision.intent == IntentType.PROBLEM_SOLVING:
                 agent_used = "DeductiveSolver"
@@ -591,20 +611,28 @@ class JARVISBrain:
                 reply_content = f"Hello, {address}! All core systems are operational. How may I assist you today?"
 
             elif decision.intent == IntentType.IDENTITY:
+                agent_used = "ConversationalCortex"
                 params = (
                     self.local_inference.model.get_num_params()
                     if self.local_inference and self.local_inference.model
                     else 130_944
                 )
+                from core.memory.persistent_memory import persistent_memory
+                user_name = await persistent_memory.get_preference("user_name") or "sir"
+                address = user_name if user_name and user_name.lower() != "sir" else "sir"
+
                 reply_content = (
-                    "I am **JARVIS** (Just A Rather Very Intelligent System), your independent, offline-first personal AI assistant.\n\n"
-                    "**Architecture & Local Capabilities:**\n"
+                    f"I am **JARVIS** (Just A Rather Very Intelligent System), your independent, offline-first personal artificial intelligence assistant, {address}.\n\n"
+                    f"**Architecture & Core Capabilities:**\n"
                     f"- **Neural Model:** Custom GPT-style Decoder-Only Transformer ({params:,} parameters) running locally on CPU\n"
-                    "- **Autonomous Reasoning:** 10-Step Problem Solving (`/solve <problem>`)\n"
-                    "- **Local Knowledge & Memory:** Persistent SQLite database & TF-IDF semantic vector engine\n"
-                    "- **Internet Investigation:** Web search and source synthesis without cloud AI (`/research <topic>`)\n"
-                    "- **Safe Computer Automation:** Desktop and system management with permission controls\n"
-                    "- **Zero Cloud AI Dependencies:** No OpenAI, no Gemini, no Ollama required."
+                    f"- **Autonomous Reasoning:** 10-Step Deductive Problem Solving (`/solve <problem>`)\n"
+                    f"- **Local Knowledge & Memory:** Persistent SQLite database (`jarvis.db`) & TF-IDF semantic vector engine\n"
+                    f"- **Programming Intelligence:** AST-based code analysis, syntax inspection, and sandboxed patch generation (`/analyze-source`)\n"
+                    f"- **Media & Computer Vision:** Highlight extraction, reel generation, and visual OCR via AutoClip (`/autoclip`, `/vision`)\n"
+                    f"- **Device Integration & Security:** Authorized LAN device mesh, encrypted pairing, and threat modeling\n"
+                    f"- **Self-Evolution Architecture:** Continuous self-learning, testing regression gates, SemVer version management, and automated rollback\n"
+                    f"- **100% Offline & Private:** Zero external cloud AI dependencies—no OpenAI, Gemini, or Ollama required.\n\n"
+                    f"*[SOURCE: KNOWN | Identity Engine]*"
                 )
 
             elif decision.intent == IntentType.STATUS_DIAGNOSTICS:
@@ -904,18 +932,31 @@ class JARVISBrain:
                             agent_used = "ConversationalCortex"
                             reply_content = conv_reply
                         else:
-                            # Step 2c: Query RAG Engine for verified offline knowledge
+                           # Step 2c: Query RAG Engine for verified offline knowledge
                             from knowledge.rag_engine import rag_engine
-                            rag_ctx = await rag_engine.retrieve(user_message, top_k=2)
-                            if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
-                                agent_used = "RAGEngine"
-                                reply_content = (
-                                    f"Based on my verified offline knowledge repository:\n\n"
-                                    + "\n\n".join([f"**{e.title}** ({e.category.upper()}):\n{e.content}" for e in rag_ctx.entries])
-                                )
-                            else:
-                                agent_used = "CustomTransformer"
-                            reply_content = f"I understand, {user_name}. How would you like to proceed?"
+
+                            rag_ctx = await rag_engine.retrieve(user_message, top_k=3)
+
+                    if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
+                        agent_used = "RAGEngine"
+
+                        reply_content = (
+                            "Based on my verified offline knowledge repository:\n\n"
+                        + "\n\n".join(
+                            [
+                                f"**{e.title}** ({e.category.upper()}):\n{e.content}"
+                                for e in rag_ctx.entries
+                            ]
+                        )
+                        + "\n\n*[SOURCE: KNOWN | Local RAG]*"
+                    )
+                    else:
+                        agent_used = "KnowledgeFallback"
+
+                        reply_content = (
+                            f"I couldn't find enough verified information about this topic, {user_name}.\n\n"
+                            "You can use `/research <topic>` to investigate it."
+                        )
 
         except Exception as e:
             log.error(f"Brain execution error on '{user_message}': {e}")
