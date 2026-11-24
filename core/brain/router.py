@@ -280,6 +280,16 @@ class IntentRouter:
                 extracted_query=text,
             )
 
+        # Handle explicit /performance-eval, /performance-report, /resource-snapshot, /compare-performance
+        if any(lower.startswith(p) for p in ["/performance-eval", "/performance-report", "/resource-snapshot", "/compare-performance"]):
+            return RoutingDecision(
+                intent=IntentType.STATUS_DIAGNOSTICS,
+                confidence=0.99,
+                needs_agent=False,
+                agent_name="ContinuousPerformanceEvaluator",
+                extracted_query=text,
+            )
+
         # Handle explicit /reasoning-benchmarks, /reasoning-report or /evaluate-strategy
         if any(lower.startswith(p) for p in ["/reasoning-benchmarks", "/reasoning-report", "/evaluate-strategy", "/improve-plan"]):
             return RoutingDecision(

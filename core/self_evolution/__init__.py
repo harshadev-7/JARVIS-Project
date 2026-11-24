@@ -86,6 +86,18 @@ from core.self_evolution.self_update_controller import (
     UpdateExecutionResult,
 )
 
+from core.self_evolution.performance_evaluator import (
+    ContinuousPerformanceEvaluator,
+    continuous_performance_evaluator,
+    HardwareResourceSnapshot,
+    ResponseQualityMetric,
+    ReasoningAccuracyMetric,
+    ExecutionReliabilityMetric,
+    ImprovementRecommendation,
+    VersionPerformanceComparison,
+    PerformanceEvaluationReport,
+)
+
 __all__ = [
     # Phase 29
     "SelfLearningEngine",
@@ -145,4 +157,14 @@ __all__ = [
     "UpdateStatus",
     "UpdatePackage",
     "UpdateExecutionResult",
+    # Phase 37
+    "ContinuousPerformanceEvaluator",
+    "continuous_performance_evaluator",
+    "HardwareResourceSnapshot",
+    "ResponseQualityMetric",
+    "ReasoningAccuracyMetric",
+    "ExecutionReliabilityMetric",
+    "ImprovementRecommendation",
+    "VersionPerformanceComparison",
+    "PerformanceEvaluationReport",
 ]
