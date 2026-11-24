@@ -220,6 +220,16 @@ class IntentRouter:
         text = user_message.strip()
         lower = text.lower()
 
+        # Handle explicit /reasoning-benchmarks, /reasoning-report or /evaluate-strategy
+        if any(lower.startswith(p) for p in ["/reasoning-benchmarks", "/reasoning-report", "/evaluate-strategy", "/improve-plan"]):
+            return RoutingDecision(
+                intent=IntentType.LOGICAL_REASONING,
+                confidence=0.99,
+                needs_agent=False,
+                agent_name="SelfReasoningEngine",
+                extracted_query=text,
+            )
+
         # Handle explicit /solve prefix: dispatch by inner subject
         if lower.startswith("/solve"):
             inner_query = re.sub(r"^/solve\s*", "", text).strip()

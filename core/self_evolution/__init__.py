@@ -2,7 +2,7 @@
 ======================================
 Architectural implementation of the controlled self-improvement pipeline:
 - Phase 29: Self-Learning Engine (Feedback harvesting, mistake indexing, knowledge updates, candidate training curation)
-- Phase 30: Self-Reasoning Improvement
+- Phase 30: Self-Reasoning Improvement (Strategy evaluation, approach comparison, decomposition scoring, benchmarks)
 - Phase 31: Self-Code Analysis
 - Phase 32: Self-Code Generation
 - Phase 33: Automated Testing & Regression Guard
@@ -21,11 +21,30 @@ from core.self_evolution.self_learning_engine import (
     LearningProgressReport,
 )
 
+from core.self_evolution.self_reasoning_engine import (
+    SelfReasoningEngine,
+    self_reasoning_engine,
+    ReasoningStrategyType,
+    StrategyProfile,
+    BenchmarkProblem,
+    BenchmarkEvaluationResult,
+    DecompositionQualityScore,
+)
+
 __all__ = [
+    # Phase 29
     "SelfLearningEngine",
     "self_learning_engine",
     "MistakeCorrectionRecord",
     "TaskAnalysisResult",
     "CandidateTrainingExample",
     "LearningProgressReport",
+    # Phase 30
+    "SelfReasoningEngine",
+    "self_reasoning_engine",
+    "ReasoningStrategyType",
+    "StrategyProfile",
+    "BenchmarkProblem",
+    "BenchmarkEvaluationResult",
+    "DecompositionQualityScore",
 ]
