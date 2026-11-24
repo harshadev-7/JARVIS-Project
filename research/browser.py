@@ -117,16 +117,35 @@ class WebBrowser:
             soup = BeautifulSoup(html, "html.parser")
 
             # Remove noisy and non-content elements
-            for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript", "svg", "form"]):
+            for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript", "svg", "form", "iframe"]):
                 tag.decompose()
+
+            # Decompose class/id patterns representing navigation menus, cookie consent, and e-commerce clutter
+            noisy_pattern = re.compile(r"(menu|nav|navbar|header|footer|sidebar|breadcrumb|cookie|consent|banner|deals|modal|popup|ad-|advert)", re.I)
+            for el in soup.find_all(attrs={"class": noisy_pattern}):
+                el.decompose()
+            for el in soup.find_all(attrs={"id": noisy_pattern}):
+                el.decompose()
 
             # Extract title
             title = soup.title.string.strip() if soup.title and soup.title.string else (url or "Web Document")
 
-            # Extract text
-            text = soup.get_text(separator="\n")
-            lines = [line.strip() for line in text.splitlines() if line.strip()]
-            clean_text = "\n".join(lines)
+            # Prioritize article body or main content over general page soup
+            main_content = soup.find("article") or soup.find("main") or soup.find("div", class_=re.compile(r"(content|article|post|entry|story)", re.I))
+            target_root = main_content if main_content else (soup.body or soup)
+
+            paragraphs = []
+            for p in target_root.find_all(["p", "h2", "h3", "li"]):
+                p_text = re.sub(r"\s+", " ", p.get_text(strip=True))
+                if len(p_text) > 30 and not any(w in p_text.lower() for w in ["cookie", "privacy policy", "all rights reserved", "subscribe to newsletter", "sign in", "all deals"]):
+                    paragraphs.append(p_text)
+
+            if paragraphs:
+                clean_text = "\n\n".join(paragraphs)
+            else:
+                text = target_root.get_text(separator="\n")
+                lines = [line.strip() for line in text.splitlines() if len(line.strip()) > 30]
+                clean_text = "\n\n".join(lines)
 
         except Exception:
             # Standard library regex fallback if BeautifulSoup unavailable

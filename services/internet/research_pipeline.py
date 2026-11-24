@@ -248,6 +248,23 @@ class ResearchPipeline:
         t_clean = re.sub(r"^(?:what\s+is\s+|define\s+|tell\s+me\s+about\s+)", "", topic, flags=re.I).strip(" ?.").title()
         t_lower = topic.lower()
 
+        # Check if the research topic is a comparison between two products or technologies
+        from core.planner.comparative_engine import comparative_engine
+        if comparative_engine.is_comparative_query(topic):
+            target_a, target_b = comparative_engine.extract_targets(topic)
+            if target_a and target_b:
+                comp = comparative_engine.compare(target_a, target_b, live_evidence=extracted_sections)
+                verified_cits = [c for c in citations if c.is_verified]
+                unverified_cits = [c for c in citations if not c.is_verified]
+                sources_list = verified_cits if verified_cits else unverified_cits
+                sources_markdown = "\n".join([f"- **[{c.title}]({c.url})** — *{c.url}*" for c in sources_list])
+                report = (
+                    f"{comp['answer']}\n\n"
+                    f"#### **Researched Sources & Verified References ({len(sources_list)} Sources):**\n"
+                    f"{sources_markdown}"
+                )
+                return report
+
         # Check for direct answer from KnowledgeEngine or DeductiveSolver first
         from core.knowledge.knowledge_engine import knowledge_engine
         from core.planner.deductive_solver import deductive_solver

@@ -456,17 +456,23 @@ class KnowledgeEngine:
                 "source_type": "general_fallback",
             }
 
-        # 2. Check for Comparative Analysis (e.g. "difference between AI and machine learning")
-        if "difference between" in q_lower or "compare" in q_lower or "vs" in q_lower:
+        # 2. Check for Comparative Analysis across products, hardware & technologies
+        from core.planner.comparative_engine import comparative_engine
+        if comparative_engine.is_comparative_query(question):
             if ("ai" in q_lower or "artificial intelligence" in q_lower) and ("machine learning" in q_lower or "ml" in q_lower):
                 return self._synthesize_ai_vs_ml_comparison()
             if "java" in q_lower and "python" in q_lower:
                 return self._synthesize_java_vs_python_comparison()
-                        # Java platform architecture comparison
             java_components = ["jdk", "jre", "jvm"]
-
             if all(component in q_lower for component in java_components):
                 return self._synthesize_jdk_jre_jvm_comparison()
+
+            # Universal Comparative Engine (iPhone vs Samsung, Mac vs Windows, OLED vs QLED, etc.)
+            target_a, target_b = comparative_engine.extract_targets(question)
+            if target_a and target_b:
+                comp_result = comparative_engine.compare(target_a, target_b)
+                if comp_result:
+                    return comp_result
 
         # 2b. Specific Specialized Concepts (Inheritance, RAM)
         if "inheritance" in q_lower:
