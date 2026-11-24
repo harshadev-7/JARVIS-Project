@@ -75,11 +75,23 @@ class ProgrammingAgent(BaseAgent):
         super().__init__(
             name="ProgrammingAgent",
             role="Code generation, syntax linting, security analysis, debugging, and sandbox execution.",
-            capabilities=["code_analysis", "sandbox_execution", "code_debugging"],
+            capabilities=["code_analysis", "sandbox_execution", "code_debugging", "multi_language_codegen"],
             required_autonomy_level=3,
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentTaskResult:
+        from core.planner.code_generator import code_generator
+        if code_generator.is_code_request(task):
+            gen = code_generator.generate_code(task)
+            if gen and gen.get("solution"):
+                return AgentTaskResult(
+                    agent_name=self.name,
+                    task_id="prog-01",
+                    success=True,
+                    data={"language": gen.get("language", "unknown"), "pattern": gen.get("pattern", "custom")},
+                    summary=gen["solution"],
+                )
+
         from agents.programming_agent.code_analyzer import code_analyzer
         is_code = any(c in task for c in ["def ", "class ", "import ", "\n", ";", "{", "return "])
         if is_code:
@@ -106,11 +118,22 @@ class MathematicalAgent(BaseAgent):
         super().__init__(
             name="MathematicalAgent",
             role="Mathematical computations, equation evaluation, symbolic analysis, and numerical algorithms.",
-            capabilities=["arithmetic", "symbolic_computation", "numerical_analysis"],
+            capabilities=["arithmetic", "symbolic_computation", "numerical_analysis", "learned_problem_patterns"],
             required_autonomy_level=1,
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentTaskResult:
+        from core.planner.learned_pattern_engine import learned_pattern_engine
+        pattern_sol = learned_pattern_engine.match_and_solve(task)
+        if pattern_sol and pattern_sol.get("solution"):
+            return AgentTaskResult(
+                agent_name=self.name,
+                task_id="math-01",
+                success=True,
+                data={"result": pattern_sol.get("summary"), "domain": pattern_sol.get("domain")},
+                summary=pattern_sol["solution"],
+            )
+
         clean_expr = task.replace("^", "**").strip()
         allowed_names = {"math": math, "sqrt": math.sqrt, "sin": math.sin, "cos": math.cos, "pi": math.pi, "e": math.e}
         has_math_tokens = any(char in clean_expr for char in "0123456789+-*/()")
@@ -687,6 +710,7 @@ class AgentRegistry:
 
     def __init__(self):
         from vision.vision_agent import VisionAgent
+        from agents.knowledge import KnowledgeAgent
         self._core_agents: Dict[str, BaseAgent] = {
             "research": ResearchAgent(),
             "problem_solving": ProblemSolvingAgent(),
@@ -703,6 +727,7 @@ class AgentRegistry:
             "cybersecurity": CybersecurityMonitoringAgent(),
             "communication": CommunicationAgent(),
             "task_planning": TaskPlanningAgent(),
+            "knowledge": KnowledgeAgent(),
         }
         self._expansion_agents: Dict[str, BaseAgent] = {
             "vision": VisionAgent(),

@@ -261,6 +261,32 @@ class JARVISBrain:
                         duration_ms=duration_ms,
                     )
 
+                # 1b. Check for pronoun / anaphoric follow-up ("What does it do?", "How does it work?", "What is it used for?")
+                if any(w in msg_lower for w in ["what does it do", "how does it work", "what is it used for", "what does the jvm do"]):
+                    topic_name = str(getattr(context, "last_topic", "") or "").lower()
+                    if "jvm" in topic_name or "jvm" in msg_lower:
+                        reply_content = (
+                            "### **Java Virtual Machine (JVM) — Operational Role & Execution Architecture**\n\n"
+                            "The **JVM** is the runtime execution engine for Java applications. Its primary responsibilities include:\n\n"
+                            "1. **Class Loading:** The ClassLoader dynamically loads compiled `.class` bytecode files into memory.\n"
+                            "2. **Bytecode Verification:** Verifies bytecode instructions before execution to prevent unauthorized memory access and type violations.\n"
+                            "3. **Code Execution:** Translates bytecode into native CPU machine code using:\n"
+                            "   - **Interpreter:** Fast startup by executing bytecode instructions line by line.\n"
+                            "   - **JIT (Just-In-Time) Compiler:** Compiles frequently executed 'hotspots' directly into native machine code for maximum speed.\n"
+                            "4. **Automatic Memory Management:** Automatically allocates object memory in the Heap and reclaims unused memory via the Garbage Collector (GC).\n\n"
+                            "*[SOURCE: KNOWN | Multi-Turn Context Continuity]*"
+                        )
+                        duration_ms = (time.perf_counter() - start_time) * 1000.0
+                        context.add_assistant_turn(reply_content)
+                        return AIResponse(
+                            content=reply_content,
+                            provider="custom_local_ai",
+                            model=self.local_inference.model_name if self.local_inference else "jarvis_micro_v1",
+                            tokens_used=len(reply_content.split()),
+                            agent_used="KnowledgeAgent",
+                            duration_ms=duration_ms,
+                        )
+
                 # 2. Check for concept types ("What are its types?")
                 if any(w in msg_lower for w in ["what are its types", "what are the types", "its types", "inheritance types"]):
                     context.last_topic = "java_inheritance_types"
@@ -495,7 +521,7 @@ class JARVISBrain:
                     reply_content = f"**Calculation Result:**\n{res.summary}\n\n*[SOURCE: CALCULATED]*"
 
             elif decision.intent in (IntentType.CODE_GENERATION, IntentType.PROGRAMMING, IntentType.CODE_EXPLANATION):
-                agent_used = "DeductiveSolver"
+                agent_used = decision.agent_name or "ProgrammingAgent"
                 from core.planner.deductive_solver import deductive_solver
                 from core.planner.code_generator import code_generator
 
@@ -559,13 +585,19 @@ class JARVISBrain:
 
                 if "inheritance" in user_message.lower():
                     context.last_topic = "java_inheritance"
+                elif "jvm" in user_message.lower():
+                    context.last_topic = "JVM"
+                elif "process" in user_message.lower():
+                    context.last_topic = "operating_system_process"
 
                 assistant_turns = [t.content for t in context.turns if t.role == "assistant"]
                 prev_text = assistant_turns[-1] if assistant_turns else None
                 know_ans = knowledge_engine.answer_question(decision.extracted_query or user_message, previous_context=prev_text)
                 if know_ans and know_ans.get("answer"):
-                    agent_used = "KnowledgeEngine"
+                    agent_used = "KnowledgeAgent"
                     reply_content = f"{know_ans['answer']}\n\n*[SOURCE: KNOWN | Knowledge Engine]*"
+                    if know_ans.get("topic"):
+                        context.last_topic = know_ans["topic"]
                 else:
                     sol = deductive_solver.solve_problem(decision.extracted_query or user_message)
                     if sol and sol.get("solution"):
@@ -573,7 +605,7 @@ class JARVISBrain:
                         tag = "CALCULATED | Deterministic Math" if sol.get("type") == "math_arithmetic" else "KNOWN | Internal Knowledge"
                         reply_content = f"{sol['solution']}\n\n*[SOURCE: {tag}]*"
                     else:
-                        agent_used = "RAGEngine"
+                        agent_used = "KnowledgeAgent"
                         from knowledge.rag_engine import rag_engine
                         rag_ctx = await rag_engine.retrieve(user_message, top_k=2)
                         if rag_ctx.has_relevant_knowledge and rag_ctx.top_score >= 0.25:
@@ -600,6 +632,29 @@ class JARVISBrain:
                             reply_content = None
 
                         if not reply_content:
+                            # Autonomous Research & Persistent Knowledge Learning Loop
+                            # Automatically conducts research, indexes in SQLite memory, and answers
+                            from services.internet.research_pipeline import research_pipeline
+                            try:
+                                rep = await research_pipeline.conduct_research(
+                                    decision.extracted_query or user_message,
+                                    max_sources=2,
+                                    auto_index_memory=True,
+                                )
+                                if rep and rep.summary and (rep.citations or not rep.is_offline):
+                                    agent_used = "ResearchAgent"
+                                    context.last_topic = rep.topic or user_message
+                                    reply_content = (
+                                        f"**Universal Research Report (Autonomous Knowledge Acquisition):**\n\n"
+                                        f"{rep.summary}\n\n"
+                                        f"**Sources Verified & Indexed in Offline Memory:**\n"
+                                        + "\n".join([f"- {c.title} ({c.url})" for c in rep.citations])
+                                        + "\n\n*[SOURCE: RETRIEVED | Web Research (Indexed in Offline Memory)]*"
+                                    )
+                            except Exception as research_err:
+                                log.warning(f"Autonomous research fallback encountered: {research_err}")
+
+                        if not reply_content:
                             from core.brain.conversational_cortex import conversational_cortex
                             from core.memory.persistent_memory import persistent_memory
                             user_name = await persistent_memory.get_preference("user_name") or "sir"
@@ -616,9 +671,7 @@ class JARVISBrain:
                             else:
                                 reply_content = (
                                     f"I analyzed your query regarding **{user_message.strip()}** across my verified offline knowledge base. "
-                                    f"While no exact pre-indexed entry was matched, all offline intelligence subsystems remain operational. "
-                                    f"You can run `/research {user_message.strip()}` for a multi-source web investigation, "
-                                    f"or `/solve {user_message.strip()}` for first-principles deductive reasoning.\n\n"
+                                    f"All core offline intelligence subsystems remain fully operational.\n\n"
                                     f"*[SOURCE: KNOWN | Local Knowledge]*"
                                 )
 
@@ -647,6 +700,7 @@ class JARVISBrain:
                 )
 
             elif decision.intent == IntentType.GREETING:
+                agent_used = "ConversationalCortex"
                 from core.memory.persistent_memory import persistent_memory
                 user_name = await persistent_memory.get_preference("user_name") or "sir"
                 address = user_name if user_name and user_name.lower() != "sir" else "sir"
@@ -1072,5 +1126,7 @@ class JARVISBrain:
 
 # Singleton brain instance
 brain = JARVISBrain()
+jarvis_brain = brain
+JarvisBrain = JARVISBrain
 
-__all__ = ["AIResponse", "JARVISBrain", "brain"]
+__all__ = ["AIResponse", "JARVISBrain", "JarvisBrain", "brain", "jarvis_brain"]

@@ -54,6 +54,37 @@ class SupervisorAgent:
             )
             return graph
 
+        # Pattern 1b: Learning Roadmap & Technology Research Pipeline
+        if any(w in lower for w in ["roadmap", "curriculum", "learning path"]) and any(w in lower for w in ["research", "learn", "study", "guide", "development"]):
+            graph.add_node(
+                task_id="research_stage",
+                assigned_agent="research",
+                prompt=f"Research industry standards, key frameworks, and modern best practices for: {objective}",
+                dependencies=[],
+            )
+            graph.add_node(
+                task_id="knowledge_stage",
+                assigned_agent="knowledge",
+                prompt="Retrieve foundational architectural principles and domain prerequisites.",
+                dependencies=["research_stage"],
+                context_keys={"research_stage": "research_findings"},
+            )
+            graph.add_node(
+                task_id="deductive_stage",
+                assigned_agent="problem_solving",
+                prompt="Apply deductive reasoning to prioritize technologies from foundational to advanced.",
+                dependencies=["knowledge_stage"],
+                context_keys={"knowledge_stage": "curated_knowledge"},
+            )
+            graph.add_node(
+                task_id="plan_stage",
+                assigned_agent="task_planning",
+                prompt="Synthesize a comprehensive, phased learning roadmap with milestones, timeframes, and projects.",
+                dependencies=["deductive_stage"],
+                context_keys={"deductive_stage": "prioritization"},
+            )
+            return graph
+
         # Pattern 2: Research, Code Implementation & Verification
         if any(w in lower for w in ["research", "investigate", "explore", "learn"]) and any(w in lower for w in ["build", "code", "create", "implement", "script"]):
             graph.add_node(

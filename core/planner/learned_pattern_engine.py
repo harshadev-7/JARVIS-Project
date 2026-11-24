@@ -98,7 +98,13 @@ class LearnedPatternEngine:
             if sol:
                 return sol
 
-        # 5. Simple Financial Interest Pattern
+        # 5. Compound Interest Pattern
+        if self._matches_compound_interest_pattern(q_lower):
+            sol = self._solve_compound_interest_pattern(query)
+            if sol:
+                return sol
+
+        # 5b. Simple Financial Interest Pattern
         if self._matches_simple_interest_pattern(q_lower):
             sol = self._solve_simple_interest_pattern(query)
             if sol:
@@ -345,13 +351,17 @@ class LearnedPatternEngine:
     # Pattern 4: Simple Financial Interest
     # ──────────────────────────────────────────────────────────────────────────
     def _matches_simple_interest_pattern(self, q: str) -> bool:
+        if "compound" in q:
+            return False
+        clean_q = re.sub(r"(?<=\d),(?=\d)", "", q)
         has_interest = any(w in q for w in ["simple interest", "principal", "rate of interest", "invested", "borrowed", "interest on"])
-        nums = re.findall(r"\d+(?:\.\d+)?", q)
+        nums = re.findall(r"\d+(?:\.\d+)?", clean_q)
         return has_interest and len(nums) >= 2
 
     def _solve_simple_interest_pattern(self, query: str) -> Dict[str, Any]:
         """Compute simple interest and total accrued amount."""
-        nums = [float(n) for n in re.findall(r"\d+(?:\.\d+)?", query)]
+        clean_q = re.sub(r"(?<=\d),(?=\d)", "", query)
+        nums = [float(n) for n in re.findall(r"\d+(?:\.\d+)?", clean_q)]
         if len(nums) < 2:
             return None
 
@@ -745,31 +755,44 @@ class LearnedPatternEngine:
     # Pattern 14: Compound Interest
     # ──────────────────────────────────────────────────────────────────────────
     def _matches_compound_interest_pattern(self, q: str) -> bool:
-        return "compound interest" in q and len(re.findall(r"\d+(?:\.\d+)?", q)) >= 2
+        clean_q = re.sub(r"(?<=\d),(?=\d)", "", q)
+        return ("compound interest" in q or "compound interest on" in q) and len(re.findall(r"\d+(?:\.\d+)?", clean_q)) >= 2
 
     def _solve_compound_interest_pattern(self, query: str) -> Dict[str, Any]:
-        nums = [float(n) for n in re.findall(r"\b\d+(?:\.\d+)?\b", query)]
+        clean_q = re.sub(r"(?<=\d),(?=\d)", "", query)
+        nums = [float(n) for n in re.findall(r"\b\d+(?:\.\d+)?\b", clean_q)]
         if len(nums) < 2:
             return None
+
+        currency_sym = "₹" if ("₹" in query or "rs" in query.lower() or "inr" in query.lower()) else "$"
         p = max(nums)
         remaining = [n for n in nums if n != p]
-        r = remaining[0] if remaining else 10.0
+        r = remaining[0] if remaining else 8.0
         t = remaining[1] if len(remaining) > 1 else 2.0
 
         amount = p * ((1.0 + (r / 100.0)) ** t)
         ci = amount - p
 
         solution = (
-            f"### **Learned Pattern Applied: Compound Interest (Offline Financial Engine)**\n\n"
-            f"*(Recognized invariant schema: $A = P\\left(1 + \\frac{{R}}{{100}}\\right)^T$, $CI = A - P$)*\n\n"
-            f"#### **1. Definitive Answer:**\n"
-            f"- **Compound Interest ($CI$):** **${ci:.2f}**\n"
-            f"- **Maturity Amount ($A$):** **${amount:.2f}**\n\n"
-            f"#### **2. Derivation:**\n"
-            f"$$A = {p:.2f} \\times \\left(1 + \\frac{{{r}}}{{100}}\\right)^{{{int(t)}}} = \\mathbf{{${amount:.2f}}}$$\n"
-            f"$$CI = {amount:.2f} - {p:.2f} = \\mathbf{{${ci:.2f}}}$$"
+            f"### **Financial Calculation: Compound Interest**\n\n"
+            f"*(Formula: $A = P\\left(1 + \\frac{{R}}{{100}}\\right)^T$, $CI = A - P$)*\n\n"
+            f"#### **1. Definitive Result:**\n"
+            f"- **Principal ($P$):** {currency_sym}{p:,.2f}\n"
+            f"- **Annual Rate ($R$):** {r:g}%\n"
+            f"- **Time Period ($T$):** {int(t) if t.is_integer() else t} years\n"
+            f"- **Compound Interest ($CI$):** **{currency_sym}{ci:,.2f}**\n"
+            f"- **Maturity Amount ($A$):** **{currency_sym}{amount:,.2f}**\n\n"
+            f"#### **2. Step-by-Step Derivation:**\n"
+            f"$$A = {currency_sym}{p:,.2f} \\times \\left(1 + \\frac{{{r}}}{{100}}\\right)^{{{int(t) if t.is_integer() else t}}} = \\mathbf{{{currency_sym}{amount:,.2f}}}$$\n"
+            f"$$CI = {currency_sym}{amount:,.2f} - {currency_sym}{p:,.2f} = \\mathbf{{{currency_sym}{ci:,.2f}}}$$"
         )
-        return {"domain": "financial_mathematics", "solution": solution, "summary": f"Compound interest is ${ci:.2f}.", "pattern_matched": "compound_interest", "verified": True}
+        return {
+            "domain": "financial_mathematics",
+            "solution": solution,
+            "summary": f"Compound interest on {currency_sym}{p:,.2f} at {r:g}% for {int(t) if t.is_integer() else t} years is {currency_sym}{ci:,.2f} (Total amount: {currency_sym}{amount:,.2f}).",
+            "pattern_matched": "compound_interest",
+            "verified": True,
+        }
 
     # ──────────────────────────────────────────────────────────────────────────
     # Pattern 15: Combinatorial Probability (Coin & Dice)

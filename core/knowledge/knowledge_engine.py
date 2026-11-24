@@ -311,6 +311,44 @@ class KnowledgeEngine:
                 "and processor all work together so you can run games, browsers, and programs smoothly."
             )
         },
+        "operating_system_process": {
+            "title": "Operating System Processes",
+            "aliases": [
+                "operating system processes",
+                "operating system process",
+                "os process",
+                "os processes",
+                "process in os",
+                "process in operating system",
+                "explain operating system processes",
+                "what is an operating system process",
+                "process management",
+            ],
+            "overview": (
+                "An **Operating System Process** is an active, executing instance of a computer program. "
+                "While a program is passive code stored statically on disk, a process is dynamic—possessing an active "
+                "Program Counter (PC), dedicated address space, CPU registers, stack, heap, and assigned OS resources."
+            ),
+            "how_it_works": (
+                "1. **Process Control Block (PCB):** The OS kernel maintains a PCB for each process containing its PID (Process ID), "
+                "execution state, CPU scheduling priority, registers, memory pointers, and I/O status.\n"
+                "2. **Process State Life Cycle:** A process transitions through standard states: "
+                "`New → Ready → Running → Waiting/Blocked → Terminated`.\n"
+                "3. **Context Switching:** When multitasking, the OS scheduler saves the CPU state of the running process into its PCB "
+                "and loads the state of the next ready process in microseconds.\n"
+                "4. **Memory Layout:** Each process has an isolated virtual address space divided into: "
+                "Text Section (machine instructions), Data Section (global/static variables), Heap (dynamically allocated memory), and Stack (local variables and call frames)."
+            ),
+            "examples": [
+                "**Web Browser Tabs:** In multi-process architectures like Google Chrome, each browser tab and extension runs in its own isolated OS process for stability and security.",
+                "**Background Services & Daemons:** Autonomous background services (e.g. JARVIS Sentinel Daemon or print spoolers) running without a visible GUI window.",
+                "**Inter-Process Communication (IPC):** Separate processes cooperating and exchanging data through OS pipes, shared memory, or sockets."
+            ],
+            "simplified": (
+                "In simple words, a **Process** is a computer program in action. If a program is a printed recipe in a book, "
+                "a process is a chef actively in the kitchen following that recipe with ingredients, pots, and stove heat."
+            )
+        },
         "database": {
             "title": "Database (DBMS)",
             "aliases": ["database", "what is a database", "what is database", "dbms"],
@@ -456,16 +494,18 @@ class KnowledgeEngine:
                 "source_type": "general_fallback",
             }
 
-        # 2. Check for Comparative Analysis across products, hardware & technologies
+        # 2. Check for JDK, JRE, and JVM Multi-Concept Architecture Comparison
+        java_components = ["jdk", "jre", "jvm"]
+        if all(component in q_lower for component in java_components):
+            return self._synthesize_jdk_jre_jvm_comparison()
+
+        # 2b. Check for Comparative Analysis across products, hardware & technologies
         from core.planner.comparative_engine import comparative_engine
         if comparative_engine.is_comparative_query(question):
             if ("ai" in q_lower or "artificial intelligence" in q_lower) and ("machine learning" in q_lower or "ml" in q_lower):
                 return self._synthesize_ai_vs_ml_comparison()
             if "java" in q_lower and "python" in q_lower:
                 return self._synthesize_java_vs_python_comparison()
-            java_components = ["jdk", "jre", "jvm"]
-            if all(component in q_lower for component in java_components):
-                return self._synthesize_jdk_jre_jvm_comparison()
 
             # Universal Comparative Engine (iPhone vs Samsung, Mac vs Windows, OLED vs QLED, etc.)
             target_a, target_b = comparative_engine.extract_targets(question)

@@ -46,22 +46,28 @@ class DeductiveSolver:
         if bat_ball_sol:
             return bat_ball_sol
 
-        # 3. Direct Mathematical Expression (e.g. "What is 25 * 18?" or "25 multiplied by 48")
-        math_sol = self._solve_arithmetic_math(p_clean)
-        if math_sol:
-            return math_sol
-
-        # 4. Multi-Language Code Generation (Java, Python, C++, etc.)
+        # 3. Multi-Language Code Generation (Must precede dynamic pattern matching)
         code_sol = self._solve_code_request(p_clean, context_params=context_params)
         if code_sol:
             return code_sol
 
-        # 5. Factual Knowledge & Simple Concepts (e.g. "What is the capital of France?", "What RAM is in simple words")
+        # 4. Direct Mathematical Expression (e.g. "What is 25 * 18?" or "25 multiplied by 48")
+        math_sol = self._solve_arithmetic_math(p_clean)
+        if math_sol:
+            return math_sol
+
+        # 5. Learned Pattern Engine (Compound Interest, Kinematics, Work Rate, Clock Angles)
+        from core.planner.learned_pattern_engine import learned_pattern_engine
+        pattern_sol = learned_pattern_engine.match_and_solve(p_clean)
+        if pattern_sol:
+            return pattern_sol
+
+        # 6. Factual Knowledge & Simple Concepts (e.g. "What is the capital of France?", "What RAM is in simple words")
         fact_sol = self._solve_factual_knowledge(p_clean)
         if fact_sol:
             return fact_sol
 
-        # 6. Document Summarization
+        # 7. Document Summarization
         doc_sol = self._solve_document_summarization(p_clean)
         if doc_sol:
             return doc_sol

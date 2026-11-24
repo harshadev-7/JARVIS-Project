@@ -101,10 +101,24 @@ class IntentRouter:
     # 5. Mathematical Problems
     MATH_PATTERNS = [
         r"\b(?:calculate|compute|math|multiply|divide|add|subtract)\b",
+        r"\b(?:compound\s+interest|simple\s+interest|interest\s+on|interest\s+rate|maturity\s+amount)\b",
         r"\b\d+(?:\.\d+)?\s*[\+\-\*\/\^]\s*\d+(?:\.\d+)?\b",
         r"\bwhat\s+is\s+\d+(?:\.\d+)?\s*[\+\-\*\/\^]\s*\d+\b",
         r"\b\d+\s+(?:multiplied by|times|plus|minus|divided by)\s+\d+\b",
         r"\b(?:solve\s+for\s+x|algebraic|integral\s+of|derivative\s+of)\b",
+    ]
+
+    # 5b. Multi-Step Collaborative Task Patterns
+    MULTI_STEP_PATTERNS = [
+        r"\b(?:research\s+.+\s+and\s+(?:create|make|build|generate|design)\s+(?:a\s+)?(?:[\w\-]+\s+)?(?:roadmap|plan|pipeline|guide|project))\b",
+        r"\b(?:create|make|generate|build)\s+(?:a\s+)?(?:[\w\-]+\s+)?roadmap\s+(?:for|on|about)\b",
+        r"\b(?:build|create|develop)\s+(?:a\s+)?(?:[\w\+\#]+\s+)?(?:backend|full\s*stack|api|web|database)\s+project\s+connected\s+to\b",
+        r"\b(?:plan\s+and\s+(?:execute|implement|build)|multi-step\s+task|hierarchical\s+mission|multi-agent\s+mission)\b",
+    ]
+
+    # 5c. Code Debugging & Inspection Patterns
+    DEBUG_PATTERNS = [
+        r"\b(?:debug|fix\s+(?:the\s+)?(?:bug|error|issue|exception)|find\s+(?:the\s+)?(?:bug|error)|lint|review\s+code)\b",
     ]
 
     # 6. Multi-Language Code Generation Patterns
@@ -151,6 +165,7 @@ class IntentRouter:
         r"\b(?:give an example|show an example|code example|provide an example)\b",
         r"\b(?:explain the (?:first|second|third|fourth|fifth|2nd|3rd|1st) type)\b",
         r"\b(?:explain it|write the code for that|make it faster)\b",
+        r"\b(?:what\s+does\s+it\s+do|how\s+does\s+it\s+work|what\s+is\s+it\s+used\s+for|what\s+about\s+it)\b",
     ]
 
     # Device & Automation Patterns
@@ -477,7 +492,66 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 4b. General Knowledge & Conceptual Question Detection
+        # 4b. Multi-Step Collaborative / Research Roadmap Tasks
+        if any(re.search(p, lower) for p in self.MULTI_STEP_PATTERNS):
+            return RoutingDecision(
+                intent=IntentType.MULTI_STEP_TASK,
+                confidence=0.96,
+                needs_agent=True,
+                agent_name="HierarchicalOrchestrator",
+                extracted_query=text,
+            )
+
+        # 4c. Code Debugging & Inspection Tasks
+        if any(re.search(p, lower) for p in self.DEBUG_PATTERNS) and any(
+            w in lower for w in ["code", "function", "class", "script", "program", "syntax", "error", "bug", "traceback", "inheritance"]
+        ):
+            return RoutingDecision(
+                intent=IntentType.CODE_EXPLANATION,
+                confidence=0.96,
+                needs_agent=False,
+                agent_name="ProgrammingAgent",
+                extracted_query=text,
+            )
+
+        # 4d. Mathematical Problems & Financial Invariants (e.g. Compound Interest)
+        is_compound_interest = bool(
+            any(w in lower for w in ["compound interest", "simple interest", "maturity amount"])
+            and any(c.isdigit() for c in lower)
+        )
+        is_math = bool(
+            is_compound_interest
+            or (any(re.search(p, lower) for p in self.MATH_PATTERNS) and any(c.isdigit() for c in lower))
+            or re.search(r"\b\d+\s+(?:multiplied by|times|plus|minus|divided by)\s+\d+\b", lower)
+            or re.search(r"\b\d+\s*(?:[\*\+\-\/])\s*\d+\b", lower)
+        )
+        is_math_action = is_math
+
+        # 4e. Live Research Tasks
+        is_live_research = bool(
+            any(re.search(p, lower) for p in self.RESEARCH_PATTERNS)
+            or re.search(
+                r"\b(?:latest|current|recent|today|2026|"
+                r"newest|upcoming)\b",
+                lower,
+            )
+        )
+
+        is_code_action = bool(
+            re.search(
+                r"\b(?:write|generate|create|implement|debug|"
+                r"fix|execute|run)\b.{0,50}\b(?:code|program|"
+                r"script|function|class)\b",
+                lower,
+            )
+            or re.search(
+                r"\b(?:give\s+me\s+a\s+code|write\s+a\s+code|"
+                r"write\s+a\s+program|program\s+to|code\s+to)\b",
+                lower,
+            )
+        )
+
+        # 4f. General Knowledge & Conceptual Question Detection
         is_knowledge_question = (
             (
                 any(re.search(p, lower) for p in self.KNOWLEDGE_PATTERNS)
@@ -496,33 +570,26 @@ class IntentRouter:
             and not any(re.search(p, lower) for p in self.IDENTITY_PATTERNS)
         )
 
-        is_code_action = bool(
-            re.search(
-                r"\b(?:write|generate|create|implement|debug|"
-                r"fix|execute|run)\b.{0,50}\b(?:code|program|"
-                r"script|function|class)\b",
-                lower,
+        # Fast priority for live research if not a pure code request
+        if is_live_research and not is_code_action and not is_math_action:
+            query = re.sub(r"^/research\s*", "", text).strip()
+            return RoutingDecision(
+                intent=IntentType.INTERNET_RESEARCH,
+                confidence=0.95,
+                needs_agent=True,
+                agent_name="ResearchAgent",
+                extracted_query=query or text,
             )
-            or re.search(
-                r"\b(?:give\s+me\s+a\s+code|write\s+a\s+code|"
-                r"write\s+a\s+program|program\s+to|code\s+to)\b",
-                lower,
-            )
-        )
 
-        is_live_research = bool(
-            any(re.search(p, lower) for p in self.RESEARCH_PATTERNS)
-            or re.search(
-                r"\b(?:latest|current|recent|today|2026|"
-                r"newest|upcoming)\b",
-                lower,
+        # Mathematical Problem Routing
+        if is_math_action and not is_code_action:
+            return RoutingDecision(
+                intent=IntentType.MATHEMATICAL_PROBLEM,
+                confidence=0.96,
+                needs_agent=True,
+                agent_name="MathematicalAgent",
+                extracted_query=text,
             )
-        )
-
-        is_math_action = bool(
-            re.search(r"\b\d+\s*(?:[\*\+\-\/]|multiplied\s+by|times|plus|minus|divided\s+by)\s*\d+\b", lower)
-            or (any(c.isdigit() for c in lower) and any(op in lower for op in ["*", "+", "-", "/", "multiplied by", "divided by"]))
-        )
 
         if (
             is_knowledge_question
@@ -534,9 +601,10 @@ class IntentRouter:
                 intent=IntentType.KNOWLEDGE_QUESTION,
                 confidence=0.96,
                 needs_agent=False,
-                agent_name="KnowledgeEngine",
+                agent_name="KnowledgeAgent",
                 extracted_query=text,
             )
+
         # 5. Multi-Language Code Generation & Programming
         is_code_request = (
             any(re.search(p, lower) for p in self.CODE_PATTERNS)
@@ -549,7 +617,7 @@ class IntentRouter:
                 intent=IntentType.CODE_GENERATION,
                 confidence=0.96,
                 needs_agent=False,
-                agent_name="DeductiveSolver",
+                agent_name="ProgrammingAgent",
                 extracted_query=text,
             )
 
@@ -563,17 +631,13 @@ class IntentRouter:
                 extracted_query=text,
             )
 
-        # 7. Mathematical Problems (Digits + Math operators or Math words)
-        is_math = (
-            (any(re.search(p, lower) for p in self.MATH_PATTERNS) and any(c.isdigit() for c in lower))
-            or bool(re.search(r"\b\d+\s+(?:multiplied by|times|plus|minus|divided by)\s+\d+\b", lower))
-        )
+        # 7. General Mathematical Fallback
         if is_math:
             return RoutingDecision(
                 intent=IntentType.MATHEMATICAL_PROBLEM,
                 confidence=0.95,
-                needs_agent=False,
-                agent_name="DeductiveSolver",
+                needs_agent=True,
+                agent_name="MathematicalAgent",
                 extracted_query=text,
             )
 
