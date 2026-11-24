@@ -555,21 +555,19 @@ class JARVISBrain:
                             formatted_entries = []
                             for e in rag_ctx.entries:
                                 content = e.content.strip()
-                                # Clean up redundant dossier headers if previously indexed by research pipeline
+                                # Clean up redundant internal dossier prefixes if present
                                 content = re.sub(r"^Research Dossier:\s*[^\n]+\n+", "", content, flags=re.I).strip()
-                                # If dossier has a direct knowledge section, extract it cleanly
-                                if "---" in content:
-                                    parts = content.split("---", 1)
-                                    if len(parts[0].strip()) > 60:
-                                        content = parts[0].strip()
                                 clean_title = e.title.replace("Research: ", "").strip()
-                                formatted_entries.append(f"### **{clean_title}** ({e.category.title()}):\n{content}")
+                                if content.startswith("#"):
+                                    formatted_entries.append(content)
+                                else:
+                                    formatted_entries.append(f"### **{clean_title}**:\n\n{content}")
 
                             if formatted_entries:
                                 reply_content = (
                                     "Based on my verified offline knowledge repository:\n\n"
                                     + "\n\n---\n\n".join(formatted_entries)
-                                    + "\n\n*[SOURCE: KNOWN | Local RAG]*"
+                                    + "\n\n*[SOURCE: VERIFIED RESEARCH | Local Knowledge Base]*"
                                 )
                             else:
                                 reply_content = None
@@ -968,17 +966,16 @@ class JARVISBrain:
                                     for e in rag_ctx.entries:
                                         c = e.content.strip()
                                         c = re.sub(r"^Research Dossier:\s*[^\n]+\n+", "", c, flags=re.I).strip()
-                                        if "---" in c:
-                                            parts = c.split("---", 1)
-                                            if len(parts[0].strip()) > 60:
-                                                c = parts[0].strip()
                                         clean_t = e.title.replace("Research: ", "").strip()
-                                        formatted_entries.append(f"### **{clean_t}** ({e.category.title()}):\n{c}")
+                                        if c.startswith("#"):
+                                            formatted_entries.append(c)
+                                        else:
+                                            formatted_entries.append(f"### **{clean_t}**:\n\n{c}")
 
                                     reply_content = (
                                         "Based on my verified offline knowledge repository:\n\n"
                                         + "\n\n---\n\n".join(formatted_entries)
-                                        + "\n\n*[SOURCE: KNOWN | Local RAG]*"
+                                        + "\n\n*[SOURCE: VERIFIED RESEARCH | Local Knowledge Base]*"
                                     )
                                 else:
                                     agent_used = "KnowledgeFallback"

@@ -13,6 +13,7 @@ Provides full CRUD inspection and deletion of all memory records.
 """
 
 from typing import List, Optional, Dict, Any
+import re
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import select, delete
@@ -169,6 +170,66 @@ class PersistentMemoryManager:
 
     # ── Knowledge Base with Semantic Search ────────────────────────────────────
 
+    async def upsert_knowledge(
+        self,
+        title: str,
+        content: str,
+        category: str = "general",
+        source: str = "user",
+    ) -> int:
+        """Add or update verified item in SQL knowledge base and vector index.
+        Prevents stale/duplicate entries by updating existing records in-place."""
+        await self.initialize()
+        clean_title = title.strip()
+        clean_content = content.strip()
+
+        # Normalized topic key for cross-variant matching (e.g. "what is aiml" vs "aiml")
+        normalized_topic = re.sub(r"^(?:research:\s*|what\s+is\s+|define\s+|tell\s+me\s+about\s+)", "", clean_title, flags=re.I).strip(" ?.")
+
+        async with self.session_factory() as session:
+            stmt = select(KnowledgeItem)
+            result = await session.execute(stmt)
+            items = result.scalars().all()
+
+            existing = None
+            for it in items:
+                it_norm = re.sub(r"^(?:research:\s*|what\s+is\s+|define\s+|tell\s+me\s+about\s+)", "", it.title, flags=re.I).strip(" ?.")
+                if (
+                    it.title.lower() == clean_title.lower()
+                    or (normalized_topic and it_norm.lower() == normalized_topic.lower())
+                ):
+                    existing = it
+                    break
+
+            if existing:
+                existing.content = clean_content
+                existing.category = category
+                existing.source = source
+                existing.is_verified = True
+                await session.commit()
+                item_id = existing.id
+                log.info(f"Updated existing KnowledgeItem #{item_id}: '{existing.title}' with up-to-date research information.")
+            else:
+                item = KnowledgeItem(
+                    title=clean_title,
+                    content=clean_content,
+                    category=category,
+                    source=source,
+                    is_verified=True,
+                )
+                session.add(item)
+                await session.commit()
+                item_id = item.id
+                log.info(f"Inserted new KnowledgeItem #{item_id}: '{clean_title}'.")
+
+        # Update or add in vector search
+        semantic_vector_store.add_document(
+            doc_id=f"knowledge-{item_id}",
+            text=f"{clean_title}: {clean_content}",
+            metadata={"category": category, "source": source, "id": item_id, "title": clean_title},
+        )
+        return item_id
+
     async def store_knowledge(
         self,
         title: str,
@@ -176,27 +237,8 @@ class PersistentMemoryManager:
         category: str = "general",
         source: str = "user",
     ) -> int:
-        """Add verified item to SQL knowledge base and vector index."""
-        await self.initialize()
-        async with self.session_factory() as session:
-            item = KnowledgeItem(
-                title=title,
-                content=content,
-                category=category,
-                source=source,
-                is_verified=True,
-            )
-            session.add(item)
-            await session.commit()
-            item_id = item.id
-
-        # Index in vector search
-        semantic_vector_store.add_document(
-            doc_id=f"knowledge-{item_id}",
-            text=f"{title}: {content}",
-            metadata={"category": category, "source": source, "id": item_id},
-        )
-        return item_id
+        """Store verified item in SQL knowledge base (delegates to upsert to keep data fresh)."""
+        return await self.upsert_knowledge(title=title, content=content, category=category, source=source)
 
     async def search_knowledge(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """Semantic search across knowledge base."""
