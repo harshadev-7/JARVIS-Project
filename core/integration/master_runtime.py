@@ -156,12 +156,20 @@ class JARVISMasterRuntime:
         except Exception:
             pass
 
+        voice_info = {}
+        try:
+            from core.voice import voice_assistant
+            voice_info = voice_assistant.get_status()
+        except Exception:
+            pass
+
         return {
             "runtime_state": self.state.value,
             "version": settings.JARVIS_VERSION,
             "uptime_sec": round(self.uptime_sec, 2),
             "health_summary": health,
             "sentinel": sentinel_info,
+            "voice": voice_info,
             "recent_events": recent_events,
         }
 

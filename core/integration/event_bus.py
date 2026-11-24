@@ -50,6 +50,11 @@ class SystemEventType(str, Enum):
     PROACTIVE_ADVISORY = "sentinel.advisory"
     MAINTENANCE_COMPLETED = "sentinel.maintenance"
     TELEMETRY_SAMPLE = "sentinel.telemetry"
+    
+    # Conversational Voice (Phase 30)
+    VOICE_WAKE_DETECTED = "voice.wake_detected"
+    VOICE_QUERY_TRANSCRIBED = "voice.transcribed"
+    VOICE_REPLY_SPOKEN = "voice.spoken"
 
 
 @dataclass

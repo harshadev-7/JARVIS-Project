@@ -727,6 +727,19 @@ class JARVISBrain:
                         f"*[SOURCE: KNOWN | Sentinel Daemon]*"
                     )
 
+            elif decision.intent == IntentType.VOICE_MODE:
+                agent_used = "VoiceAssistant"
+                from core.voice import voice_assistant
+                st = voice_assistant.get_status()
+                reply_content = (
+                    f"**Conversational Voice Assistant Active:**\n"
+                    f"- **Status:** {st['state'].upper()}\n"
+                    f"- **Wake Phrases:** {', '.join(st['wake_words'])}\n"
+                    f"- **Audio Output (TTS):** {'ENABLED' if st['enable_tts'] else 'MUTED'}\n\n"
+                    f"Use `/listen` in terminal to initiate continuous hands-free dialogue.\n\n"
+                    f"*[SOURCE: KNOWN | Voice Assistant]*"
+                )
+
             elif decision.intent == IntentType.ADAPTIVE_LEARNING:
                 agent_used = "AdaptiveLearningEngine"
                 from core.learning.adaptive_engine import adaptive_learning_engine

@@ -52,6 +52,7 @@ class IntentType(str, Enum):
     ADAPTIVE_LEARNING = "adaptive_learning"
     LEARNING = "adaptive_learning"
     SENTINEL_OPERATION = "sentinel_operation"
+    VOICE_MODE = "voice_mode"
     GENERAL_CONVERSATION = "conversational_interaction"
 
 
@@ -462,7 +463,19 @@ class IntentRouter:
                 extracted_query=query or text,
             )
 
-        # 10. Autonomous Sentinel Daemon & Maintenance
+        # 10. Full-Duplex Voice Assistant Mode
+        if lower.startswith(("/listen", "/voice-mode", "/voice-loop")) or any(
+            w in lower for w in ["start listening", "voice mode", "conversational voice", "ambient voice"]
+        ):
+            return RoutingDecision(
+                intent=IntentType.VOICE_MODE,
+                confidence=0.98,
+                needs_agent=True,
+                agent_name="VoiceAssistant",
+                extracted_query=text,
+            )
+
+        # 10b. Autonomous Sentinel Daemon & Maintenance
         if lower.startswith(("/sentinel", "/maintenance", "/subsystems")) or any(
             w in lower for w in ["sentinel", "maintenance", "subsystems", "proactive advisory"]
         ):

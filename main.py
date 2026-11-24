@@ -69,10 +69,12 @@ HELP_TEXT = """
   [yellow]/audit <p>[/yellow]   → Safe non-destructive configuration audit on authorized path
   [yellow]/inspect <f>[/yellow] → Safe static file quarantine inspection (entropy, hashes, magic)
   [yellow]/neural-research[/yellow]→ Run neural architecture benchmark (Baseline MHA vs Advanced GQA+RoPE)
-  [yellow]/diagnostics[/yellow]   → Run automated self-tests across all 28 project subsystems
+  [yellow]/diagnostics[/yellow]   → Run automated self-tests across all 30 project subsystems
   [yellow]/sentinel[/yellow]      → Inspect Autonomous Sentinel status and proactive advisories
   [yellow]/maintenance[/yellow]   → Run autonomous routine hygiene, cache pruning, and DB vacuum
-  [yellow]/subsystems[/yellow]    → List all registered subsystems and live health scores
+  [yellow]/subsystems[/yellow]    → List all 30 registered subsystems and live health scores
+  [yellow]/listen[/yellow]        → Start continuous ambient voice assistant loop (Ctrl+C to exit)
+  [yellow]/voice-mode[/yellow]    → Toggle continuous full-duplex conversational voice mode
   [yellow]/feedback <c>[/yellow] → Submit corrective feedback with root-cause diagnosis
   [yellow]/learn <fact>[/yellow] → Directly learn and index an approved fact
   [yellow]/learning-log[/yellow]  → Inspect adaptive learning audit records
@@ -96,7 +98,8 @@ COMMANDS = {
     "/secinfo", "/cwe", "/audit", "/inspect", "/neural-research", "/model-compare",
     "/feedback", "/learn", "/learning-log", "/finetune-staged", "/activate-model", "/rollback-model",
     "/diagnostics", "/system-health", "/self-test",
-    "/sentinel", "/sentinel-status", "/proactive", "/maintenance", "/subsystems"
+    "/sentinel", "/sentinel-status", "/proactive", "/maintenance", "/subsystems",
+    "/listen", "/voice-mode", "/voice-loop"
 }
 
 
@@ -625,6 +628,34 @@ async def handle_command(command: str, session_id: str) -> bool:
             border_style="blue",
         ))
         console.print()
+
+    elif cmd in {"/listen", "/voice-mode", "/voice-loop"}:
+        from core.voice import voice_assistant
+        console.print(Panel(
+            "[bold cyan]◈ Continuous Conversational Voice Mode Active[/bold cyan]\n"
+            "[dim]Listening for wake-phrase 'Hey Jarvis' or direct speech. Press Ctrl+C to return to CLI.[/dim]",
+            border_style="cyan"
+        ))
+        try:
+            await voice_assistant.start()
+            console.print("[green]● Voice assistant loop ready.[/green] (Type or speak your utterance; type 'exit' or press Ctrl+C to return)\n")
+            while True:
+                try:
+                    voice_input = await asyncio.to_thread(input, "[VOICE AMBIENT] > ")
+                except (EOFError, KeyboardInterrupt):
+                    break
+                v_clean = voice_input.strip()
+                if not v_clean or v_clean.lower() in {"/exit", "/quit", "stop", "exit", "quit"}:
+                    break
+                with console.status("[dim]Processing voice utterance...[/dim]", spinner="dots"):
+                    turn = await voice_assistant.process_utterance(v_clean)
+                console.print(f"[bold blue]JARVIS (Vocal):[/bold blue] {turn.assistant_response}")
+                console.print(f"[dim](Agent: {turn.agent_used} | Audio output: {'ACTIVE' if turn.audio_spoken else 'MUTED'} | {turn.duration_ms:.1f}ms)[/dim]\n")
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            pass
+        finally:
+            await voice_assistant.stop()
+            console.print("\n[yellow]Voice mode deactivated. Returned to standard CLI.[/yellow]\n")
 
     elif cmd.startswith("/feedback") or cmd.startswith("/learn") or cmd in ("/learning-log", "/finetune-staged", "/activate-model", "/rollback-model"):
         with console.status("[dim]Processing adaptive learning operation...[/dim]", spinner="dots"):
