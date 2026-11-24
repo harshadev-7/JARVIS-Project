@@ -99,6 +99,7 @@ class SubsystemRegistry:
             ("circuit_breaker_resilience", "Circuit Breaker Fault Tolerance", 27, "orchestration", "Resilience state machine with retries and fallback diversion."),
             ("consensus_verification", "Multi-Agent Consensus Engine", 27, "orchestration", "Majority vote, unanimous, and weighted cross-agent verification."),
             ("master_system_runtime", "Master Runtime & Diagnostics", 28, "runtime", "Unified boot lifecycle, event bus, and automated self-tests."),
+            ("self_learning_engine", "Self-Learning Engine", 29, "evolution", "Learns from approved feedback, logs mistakes, updates local knowledge, and evaluates learning progress."),
             ("sentinel_proactive_daemon", "Autonomous Sentinel Daemon", 29, "runtime", "Continuous background resource guarding, proactive advisories, and self-healing."),
             ("voice_conversational_assistant", "Conversational Voice Assistant", 30, "operational", "Full-duplex hands-free voice loop with wake-word detection, local STT, and neural speech."),
         ]

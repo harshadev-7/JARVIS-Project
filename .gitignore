@@ -5,6 +5,11 @@
 .env.*
 !.env.example
 
+# ── Local Runtime Staging & Data ──────────────────────────────────────────
+.jarvis/
+*.jsonl
+data/self_evolution/
+
 # ── Python ────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
