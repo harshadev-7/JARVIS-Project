@@ -106,6 +106,7 @@ class SubsystemRegistry:
             ("self_test_runner", "Automated Testing & Regression Guard", 33, "evolution", "Automated test runner, regression detection, performance comparison, and candidate rejection gate."),
             ("self_version_manager", "Self-Version Management Engine", 34, "evolution", "Semantic versioning, changelog compilation, release history ledger, and rollback pointers."),
             ("self_backup_recovery", "Self-Backup & Recovery Engine", 35, "evolution", "Automated snapshots, SHA-256 integrity verification, model checkpoint preservation, and point-in-time recovery."),
+            ("self_update_controller", "Controlled Self-Update Controller", 36, "evolution", "Update preparation pipeline, user approval gating, atomic release activation, and automated startup rollback."),
             ("sentinel_proactive_daemon", "Autonomous Sentinel Daemon", 29, "runtime", "Continuous background resource guarding, proactive advisories, and self-healing."),
             ("voice_conversational_assistant", "Conversational Voice Assistant", 30, "operational", "Full-duplex hands-free voice loop with wake-word detection, local STT, and neural speech."),
         ]

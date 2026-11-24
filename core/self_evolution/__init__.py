@@ -78,6 +78,14 @@ from core.self_evolution.self_backup_recovery import (
     RestoreResult,
 )
 
+from core.self_evolution.self_update_controller import (
+    SelfUpdateController,
+    self_update_controller,
+    UpdateStatus,
+    UpdatePackage,
+    UpdateExecutionResult,
+)
+
 __all__ = [
     # Phase 29
     "SelfLearningEngine",
@@ -131,4 +139,10 @@ __all__ = [
     "BackupManifest",
     "IntegrityReport",
     "RestoreResult",
+    # Phase 36
+    "SelfUpdateController",
+    "self_update_controller",
+    "UpdateStatus",
+    "UpdatePackage",
+    "UpdateExecutionResult",
 ]

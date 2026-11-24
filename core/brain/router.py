@@ -270,6 +270,16 @@ class IntentRouter:
                 extracted_query=text,
             )
 
+        # Handle explicit /prepare-update, /approve-update, /apply-update, /rollback-update, /list-updates
+        if any(lower.startswith(p) for p in ["/prepare-update", "/approve-update", "/apply-update", "/rollback-update", "/list-updates"]):
+            return RoutingDecision(
+                intent=IntentType.STATUS_DIAGNOSTICS,
+                confidence=0.99,
+                needs_agent=False,
+                agent_name="SelfUpdateController",
+                extracted_query=text,
+            )
+
         # Handle explicit /reasoning-benchmarks, /reasoning-report or /evaluate-strategy
         if any(lower.startswith(p) for p in ["/reasoning-benchmarks", "/reasoning-report", "/evaluate-strategy", "/improve-plan"]):
             return RoutingDecision(
