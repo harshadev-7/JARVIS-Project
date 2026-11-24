@@ -103,6 +103,7 @@ class SubsystemRegistry:
             ("self_reasoning_engine", "Self-Reasoning Improvement Engine", 30, "evolution", "Evaluates reasoning strategies, maintains benchmarks, optimizes task decomposition, and selects strategies based on accuracy."),
             ("self_code_analyzer", "Self-Code Analysis Engine", 31, "evolution", "AST source code inspection, bug detection, duplicate code detection, dependency mapping, and security auditing."),
             ("self_code_generator", "Self-Code Generation Engine", 32, "evolution", "Synthesizes targeted code improvements, unified diff patches, and manages isolated dev sandboxes."),
+            ("self_test_runner", "Automated Testing & Regression Guard", 33, "evolution", "Automated test runner, regression detection, performance comparison, and candidate rejection gate."),
             ("sentinel_proactive_daemon", "Autonomous Sentinel Daemon", 29, "runtime", "Continuous background resource guarding, proactive advisories, and self-healing."),
             ("voice_conversational_assistant", "Conversational Voice Assistant", 30, "operational", "Full-duplex hands-free voice loop with wake-word detection, local STT, and neural speech."),
         ]

@@ -240,6 +240,16 @@ class IntentRouter:
                 extracted_query=text,
             )
 
+        # Handle explicit /run-tests, /regression-check or /test-status
+        if any(lower.startswith(p) for p in ["/run-tests", "/regression-check", "/test-status"]):
+            return RoutingDecision(
+                intent=IntentType.STATUS_DIAGNOSTICS,
+                confidence=0.99,
+                needs_agent=False,
+                agent_name="SelfTestRunner",
+                extracted_query=text,
+            )
+
         # Handle explicit /reasoning-benchmarks, /reasoning-report or /evaluate-strategy
         if any(lower.startswith(p) for p in ["/reasoning-benchmarks", "/reasoning-report", "/evaluate-strategy", "/improve-plan"]):
             return RoutingDecision(
